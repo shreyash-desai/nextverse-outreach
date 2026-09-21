@@ -1,14 +1,8 @@
-import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
-import { initializeDemoData } from '../../data/demoData';
 
 export function AppLayout() {
-  useEffect(() => {
-    initializeDemoData();
-  }, []);
-
   return (
     <div className="min-h-screen bg-light">
       <Sidebar />

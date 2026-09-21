@@ -6,23 +6,32 @@ import { Button } from '../components/ui/Button';
 import { MessageCircle, Phone, CheckCircle, Calendar, AlertCircle } from 'lucide-react';
 import { isToday, isPast, isFuture } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../config/supabase';
 
 export function FollowUps() {
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
   const navigate = useNavigate();
 
-  const loadData = () => {
-    setFollowUps(followUpService.getFollowUps().filter(f => !f.completed));
+  const loadData = async () => {
+    const data = await followUpService.getFollowUps();
+    setFollowUps(data.filter(f => !f.completed));
   };
 
   useEffect(() => {
     loadData();
-    window.addEventListener('local-storage-change', loadData);
-    return () => window.removeEventListener('local-storage-change', loadData);
+    
+    const channel = supabase.channel('public:follow_ups')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'follow_ups' }, loadData)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  const handleComplete = (id: string) => {
-    followUpService.completeFollowUp(id);
+  const handleComplete = async (id: string) => {
+    await followUpService.completeFollowUp(id);
+    loadData();
   };
 
   const overdue = followUps.filter(f => isPast(new Date(f.date)) && !isToday(new Date(f.date)));

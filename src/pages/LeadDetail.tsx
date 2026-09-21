@@ -9,6 +9,7 @@ import { Badge } from '../components/ui/Badge';
 import { Drawer } from '../components/ui/Drawer';
 import { LeadForm } from '../components/leads/LeadForm';
 import { MessageCircle, Phone, Edit2, ArrowLeft, Building2, MapPin, Mail, Globe, BrainCircuit } from 'lucide-react';
+import { supabase } from '../config/supabase';
 
 export function LeadDetail() {
   const { id } = useParams<{ id: string }>();
@@ -17,19 +18,27 @@ export function LeadDetail() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
 
-  const loadData = () => {
+  const loadData = async () => {
     if (!id) return;
-    const foundLead = leadService.getLead(id);
+    const foundLead = await leadService.getLead(id);
     if (foundLead) {
       setLead(foundLead);
-      setActivities(activityService.getActivitiesByLeadId(id));
+      const acts = await activityService.getActivitiesForLead(id);
+      setActivities(acts);
     }
   };
 
   useEffect(() => {
     loadData();
-    window.addEventListener('local-storage-change', loadData);
-    return () => window.removeEventListener('local-storage-change', loadData);
+    
+    const channel = supabase.channel(`public:lead:${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads', filter: `id=eq.${id}` }, loadData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'activities', filter: `lead_id=eq.${id}` }, loadData)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [id]);
 
   if (!lead) return (

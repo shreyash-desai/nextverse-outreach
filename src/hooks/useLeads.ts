@@ -1,34 +1,43 @@
 import { useState, useEffect, useMemo } from 'react';
 import { leadService } from '../services/leadService';
 import type { Lead } from '../types';
+import { supabase } from '../config/supabase';
 
 export function useLeads() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [interestFilter, setInterestFilter] = useState<string>('All');
-
-  const loadLeads = () => {
-    setLeads(leadService.getLeads().sort((a, b) => 
-      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    ));
-  };
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadLeads();
-    window.addEventListener('local-storage-change', loadLeads);
-    return () => window.removeEventListener('local-storage-change', loadLeads);
+    const fetchLeads = async () => {
+      setIsLoading(true);
+      const data = await leadService.getLeads();
+      setLeads(data);
+      setIsLoading(false);
+    };
+
+    fetchLeads();
+
+    const channel = supabase.channel('public:leads')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
+        fetchLeads();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const filteredLeads = useMemo(() => {
-    return leads.filter(lead => {
+    return leads.filter((lead) => {
       const matchesSearch = 
-        searchQuery === '' ||
         lead.resortName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         lead.contactPerson.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lead.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lead.phone.includes(searchQuery);
-
+        lead.location.toLowerCase().includes(searchQuery.toLowerCase());
+      
       const matchesStatus = statusFilter === 'All' || lead.status === statusFilter;
       const matchesInterest = interestFilter === 'All' || lead.interest === interestFilter;
 
@@ -38,13 +47,13 @@ export function useLeads() {
 
   return {
     leads: filteredLeads,
-    totalLeads: leads.length,
+    totalCount: leads.length,
     searchQuery,
     setSearchQuery,
     statusFilter,
     setStatusFilter,
     interestFilter,
     setInterestFilter,
-    refreshLeads: loadLeads
+    isLoading
   };
 }

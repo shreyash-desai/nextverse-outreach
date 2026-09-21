@@ -1,36 +1,45 @@
+import { supabase } from '../config/supabase';
 import type { Activity } from '../types';
-import { storageService } from './storage';
-
-const ACTIVITIES_KEY = 'nextverse_activities';
 
 export const activityService = {
-  getActivities(): Activity[] {
-    return storageService.get<Activity[]>(ACTIVITIES_KEY, []);
+  async getActivities(): Promise<Activity[]> {
+    const { data, error } = await supabase.from('activities').select('*').order('created_at', { ascending: false });
+    if (error) { console.error('Error fetching activities:', error); return []; }
+    return data.map(mapActivityFromDB);
   },
   
-  getActivitiesByLeadId(leadId: string): Activity[] {
-    return this.getActivities().filter(a => a.leadId === leadId).sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+  async getActivitiesForLead(leadId: string): Promise<Activity[]> {
+    const { data, error } = await supabase.from('activities').select('*').eq('lead_id', leadId).order('created_at', { ascending: false });
+    if (error) { console.error('Error fetching activities for lead:', error); return []; }
+    return data.map(mapActivityFromDB);
   },
-  
-  saveActivities(activities: Activity[]): void {
-    storageService.set(ACTIVITIES_KEY, activities);
-  },
-  
-  createActivity(activity: Omit<Activity, 'id' | 'createdAt'>): Activity {
-    const activities = this.getActivities();
-    const newActivity: Activity = {
-      ...activity,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
+
+  async createActivity(activityData: Omit<Activity, 'id' | 'createdAt'>): Promise<Activity | undefined> {
+    const dbActivity = {
+      lead_id: activityData.leadId,
+      lead_name: activityData.leadName,
+      type: activityData.type,
+      description: activityData.description,
+      performed_by: activityData.performedBy
     };
-    this.saveActivities([newActivity, ...activities]); // Add to beginning
-    return newActivity;
+    const { data, error } = await supabase.from('activities').insert(dbActivity).select().single();
+    if (error) { console.error('Error creating activity:', error); return undefined; }
+    return mapActivityFromDB(data);
   },
-  
-  deleteActivitiesByLeadId(leadId: string): void {
-    const activities = this.getActivities().filter(a => a.leadId !== leadId);
-    this.saveActivities(activities);
+
+  async deleteActivitiesForLead(leadId: string): Promise<void> {
+    await supabase.from('activities').delete().eq('lead_id', leadId);
   }
 };
+
+function mapActivityFromDB(row: any): Activity {
+  return {
+    id: row.id,
+    leadId: row.lead_id,
+    leadName: row.lead_name,
+    type: row.type,
+    description: row.description,
+    performedBy: row.performed_by,
+    createdAt: row.created_at,
+  };
+}

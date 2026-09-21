@@ -1,60 +1,51 @@
+import { supabase } from '../config/supabase';
 import type { FollowUp } from '../types';
-import { storageService } from './storage';
-
-const FOLLOW_UPS_KEY = 'nextverse_followups';
 
 export const followUpService = {
-  getFollowUps(): FollowUp[] {
-    return storageService.get<FollowUp[]>(FOLLOW_UPS_KEY, []);
+  async getFollowUps(): Promise<FollowUp[]> {
+    const { data, error } = await supabase.from('follow_ups').select('*').order('date', { ascending: true });
+    if (error) { console.error('Error fetching follow-ups:', error); return []; }
+    return data.map(mapFollowUpFromDB);
   },
-  
-  getFollowUpsByLeadId(leadId: string): FollowUp[] {
-    return this.getFollowUps().filter(f => f.leadId === leadId);
-  },
-  
-  saveFollowUps(followUps: FollowUp[]): void {
-    storageService.set(FOLLOW_UPS_KEY, followUps);
-  },
-  
-  createFollowUp(followUp: Omit<FollowUp, 'id' | 'createdAt' | 'completed'>): FollowUp {
-    const followUps = this.getFollowUps();
-    const newFollowUp: FollowUp = {
-      ...followUp,
-      id: crypto.randomUUID(),
-      completed: false,
-      createdAt: new Date().toISOString(),
+
+  async createFollowUp(followUpData: Omit<FollowUp, 'id' | 'createdAt' | 'completed'>): Promise<FollowUp | undefined> {
+    const dbFollowUp = {
+      lead_id: followUpData.leadId,
+      lead_name: followUpData.leadName,
+      contact_person: followUpData.contactPerson,
+      phone: followUpData.phone,
+      whatsapp: followUpData.whatsapp,
+      date: followUpData.date,
+      type: followUpData.type,
+      notes: followUpData.notes,
+      completed: false
     };
-    this.saveFollowUps([...followUps, newFollowUp]);
-    return newFollowUp;
+    const { data, error } = await supabase.from('follow_ups').insert(dbFollowUp).select().single();
+    if (error) { console.error('Error creating follow-up:', error); return undefined; }
+    return mapFollowUpFromDB(data);
   },
-  
-  updateFollowUp(id: string, updates: Partial<FollowUp>): FollowUp | undefined {
-    const followUps = this.getFollowUps();
-    const index = followUps.findIndex(f => f.id === id);
-    
-    if (index === -1) return undefined;
-    
-    const updatedFollowUp: FollowUp = {
-      ...followUps[index],
-      ...updates,
-    };
-    
-    followUps[index] = updatedFollowUp;
-    this.saveFollowUps(followUps);
-    return updatedFollowUp;
+
+  async completeFollowUp(id: string): Promise<void> {
+    await supabase.from('follow_ups').update({ completed: true }).eq('id', id);
   },
-  
-  completeFollowUp(id: string): FollowUp | undefined {
-    return this.updateFollowUp(id, { completed: true });
-  },
-  
-  deleteFollowUp(id: string): void {
-    const followUps = this.getFollowUps().filter(f => f.id !== id);
-    this.saveFollowUps(followUps);
-  },
-  
-  deleteFollowUpsByLeadId(leadId: string): void {
-    const followUps = this.getFollowUps().filter(f => f.leadId !== leadId);
-    this.saveFollowUps(followUps);
+
+  async deleteFollowUpsForLead(leadId: string): Promise<void> {
+    await supabase.from('follow_ups').delete().eq('lead_id', leadId);
   }
 };
+
+function mapFollowUpFromDB(row: any): FollowUp {
+  return {
+    id: row.id,
+    leadId: row.lead_id,
+    leadName: row.lead_name,
+    contactPerson: row.contact_person,
+    phone: row.phone,
+    whatsapp: row.whatsapp,
+    date: row.date,
+    type: row.type,
+    notes: row.notes,
+    completed: row.completed,
+    createdAt: row.created_at,
+  };
+}

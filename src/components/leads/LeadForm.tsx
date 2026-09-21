@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Input, Select, Textarea } from '../ui/Input';
 import { leadService } from '../../services/leadService';
 import { activityService } from '../../services/activityService';
+import { followUpService } from '../../services/followUpService';
 
 interface LeadFormProps {
   initialData?: Lead;
@@ -14,7 +15,7 @@ interface LeadFormProps {
 export function LeadForm({ initialData, onSuccess, onCancel }: LeadFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     
@@ -30,53 +31,64 @@ export function LeadForm({ initialData, onSuccess, onCancel }: LeadFormProps) {
       whatsapp: data.whatsapp || data.phone,
       email: data.email,
       website: data.website,
-      
-      source: data.source || 'Manual Entry',
-      assignedTo: data.assignedTo || 'Shreyash',
+      source: data.source,
+      assignedTo: data.assignedTo,
       status: data.status,
       interest: data.interest,
       reaction: data.reaction,
-      score: 10, // simplified scoring for now
-      
+      score: parseInt(data.score) || 0,
       contactMethod: data.contactMethod,
-      firstContactDate: data.firstContactDate ? new Date(data.firstContactDate).toISOString() : null,
-      lastContactDate: null,
+      firstContactDate: data.firstContactDate || new Date().toISOString(),
+      lastContactDate: new Date().toISOString(),
       notes: data.notes,
-      
-      nextFollowUpDate: data.nextFollowUpDate ? new Date(data.nextFollowUpDate).toISOString() : null,
+      nextFollowUpDate: data.nextFollowUpDate || null,
       followUpType: data.followUpType,
       followUpNotes: data.followUpNotes,
-      
       intelligence: {
-        category: data.category,
-        propertySize: data.propertySize,
-        whatsappUsage: data.whatsappUsage,
-        currentAutomation: data.currentAutomation,
+        category: data.intelCategory || 'Unknown',
+        propertySize: data.intelPropertySize || 'Unknown',
+        whatsappUsage: data.intelWhatsappUsage || 'Unknown',
+        currentAutomation: data.intelCurrentAutomation || 'None',
         potentialNeeds: [],
       }
     };
 
     try {
       if (initialData) {
-        leadService.updateLead(initialData.id, leadData);
-        if (initialData.status !== leadData.status) {
-          activityService.createActivity({
-            leadId: initialData.id,
-            leadName: leadData.resortName,
+        const lead = await leadService.updateLead(initialData.id, leadData);
+        if (lead && lead.status !== initialData.status) {
+          await activityService.createActivity({
+            leadId: lead.id,
+            leadName: lead.resortName,
             type: 'Status Change',
-            description: `Status changed to ${leadData.status}`,
-            performedBy: leadData.assignedTo,
+            description: `Status changed to ${lead.status}`,
+            performedBy: lead.assignedTo,
           });
         }
       } else {
-        const newLead = leadService.createLead(leadData);
-        activityService.createActivity({
-          leadId: newLead.id,
-          leadName: newLead.resortName,
-          type: 'Lead Created',
-          description: 'Added via form',
-          performedBy: newLead.assignedTo,
-        });
+        const lead = await leadService.createLead(leadData);
+        if (lead) {
+          await activityService.createActivity({
+            leadId: lead.id,
+            leadName: lead.resortName,
+            type: 'Lead Created',
+            description: 'New lead added to the system',
+            performedBy: lead.assignedTo,
+          });
+
+          if (lead.nextFollowUpDate && lead.followUpType !== 'None') {
+            await followUpService.createFollowUp({
+              leadId: lead.id,
+              leadName: lead.resortName,
+              contactPerson: lead.contactPerson,
+              phone: lead.phone,
+              whatsapp: lead.whatsapp,
+              date: lead.nextFollowUpDate,
+              type: lead.followUpType,
+              notes: lead.followUpNotes,
+            });
+          }
+        }
       }
       onSuccess();
     } catch (error) {
@@ -87,98 +99,78 @@ export function LeadForm({ initialData, onSuccess, onCancel }: LeadFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 pb-12">
-      {/* Resort Section */}
-      <section className="bg-surface p-6 rounded-3xl shadow-sm border border-border">
-        <h3 className="text-sm font-semibold text-primary mb-4 uppercase tracking-wider">Resort Information</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input name="resortName" label="Resort Name *" required defaultValue={initialData?.resortName} />
-          <Input name="location" label="Location" defaultValue={initialData?.location} placeholder="e.g. Candolim, Goa" />
-          <Input name="contactPerson" label="Contact Person *" required defaultValue={initialData?.contactPerson} />
-          <Input name="designation" label="Designation" defaultValue={initialData?.designation} />
-          <Input name="phone" label="Phone" type="tel" defaultValue={initialData?.phone} />
-          <Input name="whatsapp" label="WhatsApp" type="tel" defaultValue={initialData?.whatsapp} placeholder="Leave empty to use phone" />
-          <Input name="email" label="Email" type="email" defaultValue={initialData?.email} />
-          <Input name="website" label="Website" defaultValue={initialData?.website} />
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-4">
+        <h3 className="font-semibold text-lg pb-2 border-b border-border/40">Basic Details</h3>
+        <Input label="Resort Name" name="resortName" defaultValue={initialData?.resortName} required />
+        <div className="grid grid-cols-2 gap-4">
+          <Input label="Contact Person" name="contactPerson" defaultValue={initialData?.contactPerson} required />
+          <Input label="Designation" name="designation" defaultValue={initialData?.designation} />
         </div>
-      </section>
+        <div className="grid grid-cols-2 gap-4">
+          <Input label="Phone" name="phone" defaultValue={initialData?.phone} required />
+          <Input label="WhatsApp" name="whatsapp" defaultValue={initialData?.whatsapp} />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <Input label="Email" type="email" name="email" defaultValue={initialData?.email} />
+          <Input label="Location" name="location" defaultValue={initialData?.location} required />
+        </div>
+      </div>
 
-      {/* Outreach Section */}
-      <section className="bg-surface p-6 rounded-3xl shadow-sm border border-border">
-        <h3 className="text-sm font-semibold text-primary mb-4 uppercase tracking-wider">Outreach & Status</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Select name="status" label="Status" defaultValue={initialData?.status || 'New'} options={[
-            {value: 'New', label: 'New'},
-            {value: 'Contacted', label: 'Contacted'},
-            {value: 'Replied', label: 'Replied'},
-            {value: 'Interested', label: 'Interested'},
-            {value: 'Demo Scheduled', label: 'Demo Scheduled'},
-            {value: 'Negotiation', label: 'Negotiation'},
-            {value: 'Converted', label: 'Converted'},
-            {value: 'Follow Up', label: 'Follow Up'},
-            {value: 'Not Interested', label: 'Not Interested'},
+      <div className="space-y-4">
+        <h3 className="font-semibold text-lg pb-2 border-b border-border/40">Status & Pipeline</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <Select label="Status" name="status" defaultValue={initialData?.status || 'New'} options={[
+            { value: 'New', label: 'New' },
+            { value: 'Contacted', label: 'Contacted' },
+            { value: 'Replied', label: 'Replied' },
+            { value: 'Interested', label: 'Interested' },
+            { value: 'Demo Scheduled', label: 'Demo Scheduled' },
+            { value: 'Negotiation', label: 'Negotiation' },
+            { value: 'Converted', label: 'Converted' },
+            { value: 'Follow Up', label: 'Follow Up' },
+            { value: 'Not Interested', label: 'Not Interested' }
           ]} />
-          <Select name="interest" label="Interest Level" defaultValue={initialData?.interest || 'Unknown'} options={[
-            {value: 'Very Interested', label: 'Very Interested'},
-            {value: 'Interested', label: 'Interested'},
-            {value: 'Maybe', label: 'Maybe'},
-            {value: 'Not Interested', label: 'Not Interested'},
-            {value: 'Unknown', label: 'Unknown'},
-          ]} />
-          <Select name="reaction" label="Initial Reaction" defaultValue={initialData?.reaction || 'No Response'} options={[
-            {value: 'Positive', label: 'Positive'},
-            {value: 'Interested', label: 'Interested'},
-            {value: 'Asked for Pricing', label: 'Asked for Pricing'},
-            {value: 'No Response', label: 'No Response'},
-            {value: 'Not Interested', label: 'Not Interested'},
-          ]} />
-          <Select name="assignedTo" label="Assigned To" defaultValue={initialData?.assignedTo || 'Shreyash'} options={[
-            {value: 'Shreyash', label: 'Shreyash'},
-            {value: 'Kishan', label: 'Kishan'},
+          <Select label="Interest Level" name="interest" defaultValue={initialData?.interest || 'Unknown'} options={[
+            { value: 'Unknown', label: 'Unknown' },
+            { value: 'Very Interested', label: 'Very Interested' },
+            { value: 'Interested', label: 'Interested' },
+            { value: 'Maybe', label: 'Maybe' },
+            { value: 'Not Interested', label: 'Not Interested' }
           ]} />
         </div>
-      </section>
-
-      {/* Conversation Section */}
-      <section className="bg-surface p-6 rounded-3xl shadow-sm border border-border">
-        <h3 className="text-sm font-semibold text-primary mb-4 uppercase tracking-wider">Conversation Notes</h3>
-        <div className="grid grid-cols-1 gap-4">
-          <Select name="contactMethod" label="Primary Contact Method" defaultValue={initialData?.contactMethod || 'WhatsApp'} options={[
-            {value: 'WhatsApp', label: 'WhatsApp'},
-            {value: 'Call', label: 'Call'},
-            {value: 'Email', label: 'Email'},
-          ]} />
-          <Textarea name="notes" label="Notes" rows={3} defaultValue={initialData?.notes} placeholder="Key takeaways from conversation..." />
-        </div>
-      </section>
-
-      {/* Intelligence Section */}
-      <section className="bg-surface p-6 rounded-3xl shadow-sm border border-border">
-        <h3 className="text-sm font-semibold text-primary mb-4 uppercase tracking-wider">Resort Intelligence</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Select name="category" label="Category" defaultValue={initialData?.intelligence.category || 'Hotel'} options={[
-            {value: 'Luxury', label: 'Luxury'},
-            {value: 'Premium', label: 'Premium'},
-            {value: 'Boutique', label: 'Boutique'},
-            {value: 'Budget', label: 'Budget'},
-            {value: 'Villa', label: 'Villa'},
-            {value: 'Hotel', label: 'Hotel'},
-            {value: 'Beach Resort', label: 'Beach Resort'},
-          ]} />
-          <Select name="whatsappUsage" label="Current WhatsApp Usage" defaultValue={initialData?.intelligence.whatsappUsage || 'Unknown'} options={[
-            {value: 'No WhatsApp', label: 'No WhatsApp'},
-            {value: 'Basic WhatsApp', label: 'Basic WhatsApp'},
-            {value: 'WhatsApp Business', label: 'WhatsApp Business'},
-            {value: 'Automated', label: 'Automated'},
-            {value: 'Unknown', label: 'Unknown'},
+        <div className="grid grid-cols-2 gap-4">
+          <Input label="Assigned To" name="assignedTo" defaultValue={initialData?.assignedTo || 'Shreyash'} required />
+          <Select label="Source" name="source" defaultValue={initialData?.source || 'Google Search'} options={[
+            { value: 'Google Search', label: 'Google Search' },
+            { value: 'Instagram', label: 'Instagram' },
+            { value: 'LinkedIn', label: 'LinkedIn' },
+            { value: 'Referral', label: 'Referral' },
+            { value: 'Direct', label: 'Direct' }
           ]} />
         </div>
-      </section>
+        <Textarea label="Notes" name="notes" defaultValue={initialData?.notes} rows={3} />
+      </div>
 
-      <div className="fixed bottom-0 right-0 w-full md:w-[600px] bg-surface p-4 border-t border-border flex justify-end gap-3 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button type="submit" isLoading={isSubmitting}>
-          {initialData ? 'Save Changes' : 'Create Lead'}
+      <div className="space-y-4">
+        <h3 className="font-semibold text-lg pb-2 border-b border-border/40">Next Actions</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <Input label="Follow-up Date" type="date" name="nextFollowUpDate" defaultValue={initialData?.nextFollowUpDate?.split('T')[0]} />
+          <Select label="Follow-up Type" name="followUpType" defaultValue={initialData?.followUpType || 'None'} options={[
+            { value: 'None', label: 'None' },
+            { value: 'WhatsApp', label: 'WhatsApp' },
+            { value: 'Call', label: 'Call' },
+            { value: 'Meeting', label: 'Meeting' },
+            { value: 'Email', label: 'Email' }
+          ]} />
+        </div>
+        <Input label="Follow-up Notes" name="followUpNotes" defaultValue={initialData?.followUpNotes} />
+      </div>
+
+      <div className="flex gap-3 justify-end pt-4 border-t border-border/40">
+        <Button variant="ghost" type="button" onClick={onCancel} disabled={isSubmitting}>Cancel</Button>
+        <Button variant="primary" type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Saving...' : initialData ? 'Update Lead' : 'Create Lead'}
         </Button>
       </div>
     </form>
