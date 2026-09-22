@@ -12,6 +12,7 @@ const USERS = {
   'Tejas@gonextverse': 'Tejas@123',
   'Tarun@gonextverse': 'Tarun@143',
   'Kishan@gonextverse': 'Kishan@169',
+  'Shreyash@gonextverse': 'Shreyash@123',
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

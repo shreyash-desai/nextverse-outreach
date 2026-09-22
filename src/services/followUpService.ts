@@ -1,9 +1,17 @@
 import { supabase } from '../config/supabase';
 import type { FollowUp } from '../types';
+import { getCurrentUserName } from '../utils/auth';
 
 export const followUpService = {
   async getFollowUps(): Promise<FollowUp[]> {
-    const { data, error } = await supabase.from('follow_ups').select('*').order('date', { ascending: true });
+    const user = getCurrentUserName();
+    // Inner join with leads to only fetch follow-ups for leads assigned to the current user
+    const { data, error } = await supabase
+      .from('follow_ups')
+      .select('*, leads!inner(assigned_to)')
+      .eq('leads.assigned_to', user)
+      .order('date', { ascending: true });
+    
     if (error) { console.error('Error fetching follow-ups:', error); return []; }
     return data.map(mapFollowUpFromDB);
   },

@@ -1,9 +1,11 @@
 import { supabase } from '../config/supabase';
 import type { Lead } from '../types';
+import { getCurrentUserName } from '../utils/auth';
 
 export const leadService = {
   async getLeads(): Promise<Lead[]> {
-    const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
+    const user = getCurrentUserName();
+    const { data, error } = await supabase.from('leads').select('*').eq('assigned_to', user).order('created_at', { ascending: false });
     if (error) { console.error('Error fetching leads:', error); return []; }
     return data.map(mapLeadFromDB);
   },

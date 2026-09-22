@@ -5,6 +5,7 @@ import { Input, Select, Textarea } from '../ui/Input';
 import { leadService } from '../../services/leadService';
 import { activityService } from '../../services/activityService';
 import { followUpService } from '../../services/followUpService';
+import { getCurrentUserName } from '../../utils/auth';
 
 interface LeadFormProps {
   initialData?: Lead;
@@ -140,7 +141,7 @@ export function LeadForm({ initialData, onSuccess, onCancel }: LeadFormProps) {
           ]} />
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <Input label="Assigned To" name="assignedTo" defaultValue={initialData?.assignedTo || 'Shreyash'} required />
+          <Input label="Assigned To" name="assignedTo" defaultValue={initialData?.assignedTo || getCurrentUserName()} required />
           <Select label="Source" name="source" defaultValue={initialData?.source || 'Google Search'} options={[
             { value: 'Google Search', label: 'Google Search' },
             { value: 'Instagram', label: 'Instagram' },

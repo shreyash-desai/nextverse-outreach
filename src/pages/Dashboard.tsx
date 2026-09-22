@@ -4,6 +4,7 @@ import { Button } from '../components/ui/Button';
 import { MessageCircle, Phone, CheckCircle, Plus } from 'lucide-react';
 import { followUpService } from '../services/followUpService';
 import { useNavigate } from 'react-router-dom';
+import { getCurrentUserName } from '../utils/auth';
 
 export function Dashboard() {
   const { stats, todaysFollowUps, activities, pipeline, isLoading } = useDashboardData();
@@ -28,7 +29,7 @@ export function Dashboard() {
       <div className="flex items-center justify-between pt-4">
         <div>
           <h1 className="text-[22px] md:text-[28px] font-semibold text-textPrimary tracking-tight">
-            Good {getGreeting()}, Shreyash
+            Good {getGreeting()}, {getCurrentUserName()}
           </h1>
           <p className="text-textSecondary mt-0.5 text-[13px] md:text-[15px]">
             Your Goa outreach at a glance.
