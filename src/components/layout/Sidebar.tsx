@@ -1,6 +1,7 @@
-import { NavLink } from 'react-router-dom';
-import { Home, Users, CalendarCheck, BarChart2, User, Settings } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { Home, Users, CalendarCheck, BarChart2, User, Settings, LogOut } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { useAuth } from '../../contexts/AuthContext';
 
 const navItems = [
   { icon: Home, label: 'Dashboard', to: '/' },
@@ -15,6 +16,14 @@ const bottomItems = [
 ];
 
 export function Sidebar() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
     <aside className="hidden md:flex flex-col w-20 lg:w-64 fixed left-6 top-6 bottom-6 z-40 bg-surface rounded-3xl shadow-floating border border-border p-4 transition-all">
       <div className="flex items-center justify-center lg:justify-start lg:px-4 h-12 mb-8 mt-2">
@@ -80,6 +89,18 @@ export function Sidebar() {
             </span>
           </NavLink>
         ))}
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center lg:px-4 py-3 rounded-2xl transition-all duration-200 group text-textSecondary hover:bg-red-50 hover:text-red-600"
+          title="Logout"
+        >
+          <div className="w-10 h-10 lg:w-auto lg:h-auto mx-auto lg:mx-0 flex items-center justify-center lg:block">
+            <LogOut className="w-5 h-5 stroke-[2px]" />
+          </div>
+          <span className="ml-3 font-medium text-sm hidden lg:block">
+            Logout
+          </span>
+        </button>
       </div>
     </aside>
   );
