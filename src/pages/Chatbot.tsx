@@ -174,7 +174,7 @@ export function Chatbot() {
     <div className="h-[calc(100vh-80px)] md:h-[calc(100vh-40px)] flex flex-col pt-4 pb-20 md:pb-0">
       <div className="mb-4">
         <h1 className="text-[22px] md:text-[28px] font-semibold text-textPrimary tracking-tight">AI Assistant</h1>
-        <p className="text-textSecondary mt-0.5 text-[13px] md:text-[15px]">Powered by Gemini 1.5 Flash 8B</p>
+        <p className="text-textSecondary mt-0.5 text-[13px] md:text-[15px]">Powered by Gemini 3.5 Flash Lite</p>
       </div>
 
       <Card className="flex-1 flex flex-col overflow-hidden bg-surface/50 border border-primary/20 shadow-lg shadow-primary/5">
