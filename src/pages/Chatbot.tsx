@@ -5,7 +5,8 @@ import { Textarea } from '../components/ui/Input';
 import { Send, Bot, User } from 'lucide-react';
 import { leadService } from '../services/leadService';
 import { followUpService } from '../services/followUpService';
-import { getCurrentUserName } from '../utils/auth';
+import { getCurrentUserName, getCurrentUserEmail } from '../utils/auth';
+import { supabase } from '../config/supabase';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import type { FunctionDeclaration } from '@google/generative-ai';
 
@@ -37,6 +38,13 @@ export function Chatbot() {
     setIsLoading(true);
 
     try {
+      // Save user message to DB
+      await supabase.from('ai_chat_logs').insert({
+        user_email: getCurrentUserEmail(),
+        role: 'user',
+        content: userMessage
+      });
+
       // 1. Fetch live CRM context
       const leads = await leadService.getLeads();
       const followUps = await followUpService.getFollowUps();
@@ -145,6 +153,13 @@ export function Chatbot() {
         botResponse = `✅ Successfully added **${addedCount}** leads to your CRM! You can view them in the Leads tab.`;
       }
       
+      // Save bot response to DB
+      await supabase.from('ai_chat_logs').insert({
+        user_email: getCurrentUserEmail(),
+        role: 'model',
+        content: botResponse
+      });
+
       setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', content: botResponse }]);
 
     } catch (error: any) {

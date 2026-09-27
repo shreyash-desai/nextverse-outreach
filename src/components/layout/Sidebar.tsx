@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Users, CalendarCheck, BarChart2, User, Settings, LogOut, Shield, Bot } from 'lucide-react';
+import { Home, Users, CalendarCheck, BarChart2, User, Settings, LogOut, Shield, Bot, Activity } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useAuth } from '../../contexts/AuthContext';
 import { isAdmin } from '../../utils/auth';
@@ -70,25 +70,46 @@ export function Sidebar() {
 
       <div className="mt-auto pt-4 border-t border-border/50 space-y-2">
         {isAdmin() && (
-          <NavLink
-            to="/team"
-            className={({ isActive }) =>
-              cn(
-                'flex items-center lg:px-4 py-3 rounded-2xl transition-all duration-200 group',
-                isActive 
-                  ? 'bg-purple-100 text-purple-700' 
-                  : 'text-purple-600 hover:bg-purple-50'
-              )
-            }
-            title="Team"
-          >
-            <div className="w-10 h-10 lg:w-auto lg:h-auto mx-auto lg:mx-0 flex items-center justify-center lg:block">
-              <Shield className="w-5 h-5 stroke-[2px]" />
-            </div>
-            <span className="ml-3 font-medium text-sm hidden lg:block">
-              Team
-            </span>
-          </NavLink>
+          <>
+            <NavLink
+              to="/team"
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center lg:px-4 py-3 rounded-2xl transition-all duration-200 group',
+                  isActive 
+                    ? 'bg-purple-100 text-purple-700' 
+                    : 'text-purple-600 hover:bg-purple-50'
+                )
+              }
+              title="Team"
+            >
+              <div className="w-10 h-10 lg:w-auto lg:h-auto mx-auto lg:mx-0 flex items-center justify-center lg:block">
+                <Shield className="w-5 h-5 stroke-[2px]" />
+              </div>
+              <span className="ml-3 font-medium text-sm hidden lg:block">
+                Team
+              </span>
+            </NavLink>
+            <NavLink
+              to="/ai-logs"
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center lg:px-4 py-3 rounded-2xl transition-all duration-200 group',
+                  isActive 
+                    ? 'bg-purple-100 text-purple-700' 
+                    : 'text-purple-600 hover:bg-purple-50'
+                )
+              }
+              title="AI Logs"
+            >
+              <div className="w-10 h-10 lg:w-auto lg:h-auto mx-auto lg:mx-0 flex items-center justify-center lg:block">
+                <Activity className="w-5 h-5 stroke-[2px]" />
+              </div>
+              <span className="ml-3 font-medium text-sm hidden lg:block">
+                AI Logs
+              </span>
+            </NavLink>
+          </>
         )}
         {bottomItems.map((item) => (
           <NavLink

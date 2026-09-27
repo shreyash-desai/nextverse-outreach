@@ -8,6 +8,7 @@ import { Analytics } from './pages/Analytics';
 import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
 import { Team } from './pages/Team';
+import { AILogs } from './pages/AILogs';
 import { Chatbot } from './pages/Chatbot';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -37,6 +38,7 @@ function App() {
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/team" element={<Team />} />
+              <Route path="/ai-logs" element={<AILogs />} />
               <Route path="/chatbot" element={<Chatbot />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
