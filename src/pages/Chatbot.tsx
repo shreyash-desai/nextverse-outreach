@@ -5,7 +5,7 @@ import { Textarea } from '../components/ui/Input';
 import { Send, Bot, User } from 'lucide-react';
 import { leadService } from '../services/leadService';
 import { followUpService } from '../services/followUpService';
-import { getCurrentUserName, getCurrentUserEmail } from '../utils/auth';
+import { getCurrentUserName, getCurrentUserEmail, isAdmin } from '../utils/auth';
 import { supabase } from '../config/supabase';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import type { FunctionDeclaration } from '@google/generative-ai';
