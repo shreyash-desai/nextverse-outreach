@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
+import { Textarea } from '../components/ui/Input';
 import { Send, Bot, User } from 'lucide-react';
 import { leadService } from '../services/leadService';
 import { followUpService } from '../services/followUpService';
@@ -191,16 +191,23 @@ export function Chatbot() {
         </div>
         
         <div className="p-4 bg-white border-t border-border">
-          <form onSubmit={handleSend} className="flex gap-2">
-            <Input 
+          <form onSubmit={handleSend} className="flex gap-2 items-end">
+            <Textarea 
               name="message" 
-              placeholder="Ask me anything about your leads..." 
+              placeholder="Paste your leads here or ask a question..." 
               value={input}
               onChange={e => setInput(e.target.value)}
-              className="flex-1 mb-0" 
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend(e as any);
+                }
+              }}
+              className="flex-1 mb-0 resize-y min-h-[44px] max-h-[300px]" 
+              rows={3}
               disabled={isLoading}
             />
-            <Button type="submit" disabled={isLoading || !input.trim()} className="w-12 h-[42px] px-0 flex justify-center mt-[22px]">
+            <Button type="submit" disabled={isLoading || !input.trim()} className="w-12 h-[44px] px-0 flex justify-center shrink-0">
               <Send className="w-5 h-5" />
             </Button>
           </form>
