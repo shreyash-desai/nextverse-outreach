@@ -130,6 +130,9 @@ export function Chatbot() {
               reaction: 'Other',
               score: 50,
               contactMethod: 'WhatsApp',
+              firstContactDate: null,
+              lastContactDate: null,
+              nextFollowUpDate: null,
               followUpType: 'None',
               followUpNotes: '',
               intelligence: {
