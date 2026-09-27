@@ -49,13 +49,14 @@ export function Chatbot() {
       ${leads.map(l => `- ${l.resortName} (${l.status}, Assigned to: ${l.assignedTo})`).join('\n')}
       `;
 
-      // 2. Call Gemini API
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const model = import.meta.env.VITE_GEMINI_MODEL || 'gemini-1.5-flash-8b';
+
       if (!apiKey) {
-        throw new Error("VITE_GEMINI_API_KEY is not set in .env.local");
+        throw new Error("VITE_GEMINI_API_KEY is not set. Please restart your dev server after adding it to .env.local");
       }
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
