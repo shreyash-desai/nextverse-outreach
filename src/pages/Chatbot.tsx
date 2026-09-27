@@ -127,7 +127,7 @@ export function Chatbot() {
               assignedTo: myName,
               status: 'New',
               interest: 'Unknown',
-              reaction: 'Unknown',
+              reaction: 'Other',
               score: 50,
               contactMethod: 'WhatsApp',
               followUpType: 'None',
