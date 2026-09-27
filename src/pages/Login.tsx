@@ -21,7 +21,7 @@ export function Login() {
     // Simulate a tiny network delay for UX
     await new Promise(r => setTimeout(r, 600));
 
-    const success = login(username.trim(), password);
+    const success = await login(username.trim(), password);
     if (success) {
       navigate('/');
     } else {

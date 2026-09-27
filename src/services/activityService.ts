@@ -1,11 +1,17 @@
 import { supabase } from '../config/supabase';
 import type { Activity } from '../types';
-import { getCurrentUserName } from '../utils/auth';
+import { getCurrentUserName, isAdmin } from '../utils/auth';
 
 export const activityService = {
   async getActivities(): Promise<Activity[]> {
     const user = getCurrentUserName();
-    const { data, error } = await supabase.from('activities').select('*').eq('performed_by', user).order('created_at', { ascending: false });
+    let query = supabase.from('activities').select('*').order('created_at', { ascending: false });
+    
+    if (!isAdmin()) {
+      query = query.eq('performed_by', user);
+    }
+    
+    const { data, error } = await query;
     if (error) { console.error('Error fetching activities:', error); return []; }
     return data.map(mapActivityFromDB);
   },

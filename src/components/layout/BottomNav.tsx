@@ -1,13 +1,13 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Users, CalendarCheck, BarChart2, LogOut } from 'lucide-react';
+import { Home, Users, CalendarCheck, Bot, LogOut, Shield } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useAuth } from '../../contexts/AuthContext';
+import { isAdmin } from '../../utils/auth';
 
 const navItems = [
   { icon: Home, label: 'Home', to: '/' },
   { icon: Users, label: 'Leads', to: '/leads' },
-  { icon: CalendarCheck, label: 'Follow-ups', to: '/follow-ups' },
-  { icon: BarChart2, label: 'Analytics', to: '/analytics' },
+  { icon: Bot, label: 'Chatbot', to: '/chatbot' },
 ];
 
 export function BottomNav() {
@@ -39,6 +39,22 @@ export function BottomNav() {
             <span className="text-[10px] font-medium">{item.label}</span>
           </NavLink>
         ))}
+        {isAdmin() && (
+          <NavLink
+            to="/team"
+            className={({ isActive }) =>
+              cn(
+                'flex flex-col items-center justify-center w-16 h-12 rounded-2xl transition-all duration-200',
+                isActive 
+                  ? 'text-purple-700 bg-purple-100' 
+                  : 'text-purple-500 hover:text-purple-700 hover:bg-purple-50'
+              )
+            }
+          >
+            <Shield className="w-5 h-5 mb-0.5" strokeWidth={2} />
+            <span className="text-[10px] font-medium">Team</span>
+          </NavLink>
+        )}
         <button
           onClick={handleLogout}
           className="flex flex-col items-center justify-center w-16 h-12 rounded-2xl transition-all duration-200 text-textMuted hover:text-red-600 hover:bg-red-50"

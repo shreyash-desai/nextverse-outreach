@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Lead } from '../../types';
 import { Button } from '../ui/Button';
 import { Input, Select, Textarea } from '../ui/Input';
 import { leadService } from '../../services/leadService';
 import { activityService } from '../../services/activityService';
 import { followUpService } from '../../services/followUpService';
-import { getCurrentUserName } from '../../utils/auth';
+import { getCurrentUserName, isAdmin } from '../../utils/auth';
+import { userService, type User } from '../../services/userService';
 
 interface LeadFormProps {
   initialData?: Lead;
@@ -15,6 +16,13 @@ interface LeadFormProps {
 
 export function LeadForm({ initialData, onSuccess, onCancel }: LeadFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    if (isAdmin()) {
+      userService.getUsers().then(setUsers);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -141,7 +149,21 @@ export function LeadForm({ initialData, onSuccess, onCancel }: LeadFormProps) {
           ]} />
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <Input label="Assigned To" name="assignedTo" defaultValue={initialData?.assignedTo || getCurrentUserName()} required />
+          {isAdmin() ? (
+            <Select 
+              label="Assigned To" 
+              name="assignedTo" 
+              defaultValue={initialData?.assignedTo || getCurrentUserName()} 
+              options={[
+                { value: getCurrentUserName(), label: getCurrentUserName() },
+                ...users
+                  .filter(u => u.username.split('@')[0] !== getCurrentUserName())
+                  .map(u => ({ value: u.username.split('@')[0], label: u.username.split('@')[0] }))
+              ]} 
+            />
+          ) : (
+            <Input label="Assigned To" name="assignedTo" defaultValue={initialData?.assignedTo || getCurrentUserName()} readOnly className="bg-gray-50 cursor-not-allowed opacity-70" />
+          )}
           <Select label="Source" name="source" defaultValue={initialData?.source || 'Google Search'} options={[
             { value: 'Google Search', label: 'Google Search' },
             { value: 'Instagram', label: 'Instagram' },

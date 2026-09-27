@@ -20,7 +20,7 @@ export function FollowUps() {
 
   useEffect(() => {
     loadData();
-    
+
     const channel = supabase.channel('public:follow_ups')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'follow_ups' }, loadData)
       .subscribe();

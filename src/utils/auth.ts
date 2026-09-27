@@ -5,6 +5,13 @@ export const getCurrentUserEmail = (): string => {
 export const getCurrentUserName = (): string => {
   const email = getCurrentUserEmail();
   if (!email) return 'User';
-  // Extracts "Tejas" from "Tejas@gonextverse"
   return email.split('@')[0];
+};
+
+export const getCurrentUserRole = (): string => {
+  return localStorage.getItem('nextverse_user_role') || 'Employee';
+};
+
+export const isAdmin = (): boolean => {
+  return getCurrentUserRole() === 'Admin';
 };

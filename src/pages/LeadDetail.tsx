@@ -8,7 +8,7 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Drawer } from '../components/ui/Drawer';
 import { LeadForm } from '../components/leads/LeadForm';
-import { MessageCircle, Phone, Edit2, ArrowLeft, Building2, MapPin, Mail, Globe, BrainCircuit } from 'lucide-react';
+import { MessageCircle, Phone, Edit2, ArrowLeft, Building2, MapPin, Mail, Globe, BrainCircuit, Zap } from 'lucide-react';
 import { supabase } from '../config/supabase';
 
 export function LeadDetail() {
@@ -18,6 +18,74 @@ export function LeadDetail() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isQuickLogging, setIsQuickLogging] = useState(false);
+
+  const handleQuickAction = async (action: string) => {
+    if (!lead) return;
+    setIsQuickLogging(true);
+    
+    try {
+      if (action === 'Not Picked') {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        await leadService.updateLead(lead.id, { 
+          status: 'Contacted',
+          nextFollowUpDate: tomorrow.toISOString(),
+          followUpType: 'Call'
+        });
+        
+        await activityService.createActivity({
+          leadId: lead.id,
+          leadName: lead.resortName,
+          type: 'Call Attempt',
+          description: 'Call not picked. Auto-scheduled follow-up for tomorrow.',
+          performedBy: lead.assignedTo,
+        });
+
+        await followUpService.createFollowUp({
+          leadId: lead.id,
+          leadName: lead.resortName,
+          contactPerson: lead.contactPerson,
+          phone: lead.phone,
+          whatsapp: lead.whatsapp,
+          date: tomorrow.toISOString(),
+          type: 'Call',
+          notes: 'Auto-scheduled from unanswered call.',
+        });
+      } else if (action === 'Interested') {
+        await leadService.updateLead(lead.id, { 
+          status: 'Interested',
+          interest: 'Interested'
+        });
+        await activityService.createActivity({
+          leadId: lead.id,
+          leadName: lead.resortName,
+          type: 'Status Change',
+          description: 'Lead marked as Interested.',
+          performedBy: lead.assignedTo,
+        });
+      } else if (action === 'Not Interested') {
+        await leadService.updateLead(lead.id, { 
+          status: 'Not Interested',
+          interest: 'Not Interested'
+        });
+        await activityService.createActivity({
+          leadId: lead.id,
+          leadName: lead.resortName,
+          type: 'Status Change',
+          description: 'Lead marked as Not Interested.',
+          performedBy: lead.assignedTo,
+        });
+      }
+      
+      await loadData();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsQuickLogging(false);
+    }
+  };
 
   const loadData = async () => {
     if (!id) return;
@@ -32,7 +100,7 @@ export function LeadDetail() {
 
   useEffect(() => {
     loadData();
-    
+
     const channel = supabase.channel(`public:lead:${id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads', filter: `id=eq.${id}` }, loadData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'activities', filter: `lead_id=eq.${id}` }, loadData)
@@ -58,17 +126,17 @@ export function LeadDetail() {
 
   return (
     <div className="space-y-5 animate-in fade-in duration-500 pb-28 md:pb-10">
-      
+
       {/* Header */}
       <div className="pt-4">
-        <button 
+        <button
           onClick={() => navigate('/leads')}
           className="flex items-center text-sm text-textSecondary hover:text-textPrimary mb-3 transition-colors"
         >
           <ArrowLeft className="w-4 h-4 mr-1" />
           Back to Leads
         </button>
-        
+
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -106,6 +174,31 @@ export function LeadDetail() {
         </div>
       </div>
 
+      {/* Quick Actions */}
+      <div className="flex gap-2 pb-2">
+        <button 
+          onClick={() => handleQuickAction('Not Picked')}
+          disabled={isQuickLogging}
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 h-10 rounded-xl bg-orange-50 text-orange-700 text-sm font-medium hover:bg-orange-100 transition-colors border border-orange-200"
+        >
+          <Phone className="w-4 h-4" /> Not Picked
+        </button>
+        <button 
+          onClick={() => handleQuickAction('Interested')}
+          disabled={isQuickLogging}
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 h-10 rounded-xl bg-emerald-50 text-emerald-700 text-sm font-medium hover:bg-emerald-100 transition-colors border border-emerald-200"
+        >
+          <Zap className="w-4 h-4" /> Interested
+        </button>
+        <button 
+          onClick={() => handleQuickAction('Not Interested')}
+          disabled={isQuickLogging}
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 h-10 rounded-xl bg-gray-50 text-gray-700 text-sm font-medium hover:bg-gray-100 transition-colors border border-gray-200"
+        >
+          Not Interested
+        </button>
+      </div>
+
       {/* Overview Mini-Cards — horizontal scroll on mobile */}
       <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
         {[
@@ -113,8 +206,8 @@ export function LeadDetail() {
           { label: 'Lead Score', value: <span className="text-lg font-semibold text-primary">{lead.score}</span> },
           { label: 'Assigned To', value: lead.assignedTo },
           { label: 'Reaction', value: lead.reaction },
-          { label: 'Last Contact', value: lead.lastContactDate ? new Date(lead.lastContactDate).toLocaleDateString([], {day:'numeric', month:'short'}) : 'Never' },
-          { label: 'Next Follow-up', value: lead.nextFollowUpDate ? new Date(lead.nextFollowUpDate).toLocaleDateString([], {day:'numeric', month:'short'}) : 'None' },
+          { label: 'Last Contact', value: lead.lastContactDate ? new Date(lead.lastContactDate).toLocaleDateString([], { day: 'numeric', month: 'short' }) : 'Never' },
+          { label: 'Next Follow-up', value: lead.nextFollowUpDate ? new Date(lead.nextFollowUpDate).toLocaleDateString([], { day: 'numeric', month: 'short' }) : 'None' },
         ].map((item) => (
           <Card key={item.label} className="p-3 flex flex-col justify-center min-w-[110px] shrink-0">
             <p className="text-[11px] font-medium text-textSecondary mb-1">{item.label}</p>
@@ -206,12 +299,12 @@ export function LeadDetail() {
         </div>
       </div>
 
-      <Drawer 
-        isOpen={isEditDrawerOpen} 
+      <Drawer
+        isOpen={isEditDrawerOpen}
         onClose={() => setIsEditDrawerOpen(false)}
         title="Edit Lead"
       >
-        <LeadForm 
+        <LeadForm
           initialData={lead}
           onSuccess={() => { setIsEditDrawerOpen(false); loadData(); }}
           onCancel={() => setIsEditDrawerOpen(false)}

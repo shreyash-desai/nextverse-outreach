@@ -4,9 +4,10 @@ import { Dashboard } from './pages/Dashboard';
 import { Leads } from './pages/Leads';
 import { LeadDetail } from './pages/LeadDetail';
 import { FollowUps } from './pages/FollowUps';
-import { Analytics } from './pages/Analytics';
 import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
+import { Team } from './pages/Team';
+import { Chatbot } from './pages/Chatbot';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 function ProtectedRoute() {
@@ -34,6 +35,8 @@ function App() {
               <Route path="/follow-ups" element={<FollowUps />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/team" element={<Team />} />
+              <Route path="/chatbot" element={<Chatbot />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Route>
