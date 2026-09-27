@@ -6,6 +6,7 @@ import { Send, Bot, User } from 'lucide-react';
 import { leadService } from '../services/leadService';
 import { followUpService } from '../services/followUpService';
 import { getCurrentUserName } from '../utils/auth';
+import { GoogleGenerativeAI, FunctionDeclaration, Schema, Type } from '@google/generative-ai';
 
 interface Message {
   id: string;
@@ -50,105 +51,97 @@ export function Chatbot() {
       `;
 
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      const model = import.meta.env.VITE_GEMINI_MODEL || 'gemini-1.5-flash';
+      const modelName = import.meta.env.VITE_GEMINI_MODEL || 'gemini-1.5-flash';
 
       if (!apiKey) {
         throw new Error("VITE_GEMINI_API_KEY is not set. Please restart your dev server after adding it to .env.local");
       }
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: "You are an AI assistant for the Nextverse Outreach CRM. You help the user manage leads and answer questions. If the user provides information about leads (like a list of resorts), use the add_multiple_leads tool to insert them into the CRM. Extract all extra details like OTA dependency, Meta Ads, and pitches into the 'notes' field." }]
-          },
-          tools: [{
-            function_declarations: [
-              {
-                name: "add_multiple_leads",
-                description: "Adds one or multiple new leads to the CRM database.",
-                parameters: {
-                  type: "OBJECT",
-                  properties: {
-                    leads: {
-                      type: "ARRAY",
-                      items: {
-                        type: "OBJECT",
-                        properties: {
-                          resortName: { type: "STRING" },
-                          contactPerson: { type: "STRING" },
-                          phone: { type: "STRING" },
-                          email: { type: "STRING" },
-                          website: { type: "STRING" },
-                          whatsapp: { type: "STRING" },
-                          notes: { type: "STRING", description: "Combine all other information, such as Meta ads, OTA dependency, custom pitch, etc." }
-                        },
-                        required: ["resortName", "phone"]
-                      }
-                    }
-                  },
-                  required: ["leads"]
-                }
+      const genAI = new GoogleGenerativeAI(apiKey);
+      
+      const addMultipleLeadsDeclaration: FunctionDeclaration = {
+        name: "add_multiple_leads",
+        description: "Adds one or multiple new leads to the CRM database.",
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            leads: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  resortName: { type: Type.STRING },
+                  contactPerson: { type: Type.STRING },
+                  phone: { type: Type.STRING },
+                  email: { type: Type.STRING },
+                  website: { type: Type.STRING },
+                  whatsapp: { type: Type.STRING },
+                  notes: { type: Type.STRING, description: "Combine all other information, such as Meta ads, OTA dependency, custom pitch, etc." }
+                },
+                required: ["resortName", "phone"]
               }
-            ]
-          }],
-          contents: [
-            { role: 'user', parts: [{ text: `CRM CONTEXT:\n${crmContext}\n\nUSER QUESTION: ${userMessage}` }] }
-          ]
-        })
+            }
+          },
+          required: ["leads"]
+        }
+      };
+
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction: "You are an AI assistant for the Nextverse Outreach CRM. You help the user manage leads and answer questions. If the user provides information about leads (like a list of resorts), use the add_multiple_leads tool to insert them into the CRM. Extract all extra details like OTA dependency, Meta Ads, and pitches into the 'notes' field.",
+        tools: [{ functionDeclarations: [addMultipleLeadsDeclaration] }],
       });
 
-      const data = await response.json();
+      const chat = model.startChat({
+        history: [
+          { role: 'user', parts: [{ text: `CRM CONTEXT:\n${crmContext}` }] },
+          { role: 'model', parts: [{ text: 'Context loaded. Ready to help.' }] }
+        ]
+      });
+
+      const result = await chat.sendMessage(userMessage);
+      const call = result.response.functionCalls()?.[0];
       
-      if (data.error) {
-        throw new Error(data.error.message);
-      }
+      let botResponse = result.response.text() || "I processed your request, but have no text response.";
 
-      let botResponse = "I'm sorry, I couldn't process that.";
-      const part = data.candidates?.[0]?.content?.parts?.[0];
-
-      if (part?.functionCall) {
-        if (part.functionCall.name === 'add_multiple_leads') {
-          const leadsToAdd = part.functionCall.args.leads || [];
-          let addedCount = 0;
-          for (const leadData of leadsToAdd) {
-            await leadService.createLead({
-              resortName: leadData.resortName || 'Unknown Resort',
-              contactPerson: leadData.contactPerson || 'Unknown',
-              phone: leadData.phone || '0000000000',
-              email: leadData.email || '',
-              website: leadData.website || '',
-              whatsapp: leadData.whatsapp || leadData.phone || '',
-              notes: leadData.notes || '',
-              designation: 'Owner/Manager',
-              location: 'Goa',
-              source: 'AI Assistant',
-              assignedTo: myName,
-              status: 'New',
-              interest: 'Unknown',
-              reaction: 'Other',
-              score: 50,
-              contactMethod: 'WhatsApp',
-              firstContactDate: null,
-              lastContactDate: null,
-              nextFollowUpDate: null,
-              followUpType: 'None',
-              followUpNotes: '',
-              intelligence: {
-                category: 'Other',
-                propertySize: 'Unknown',
-                whatsappUsage: 'Unknown',
-                currentAutomation: 'None',
-                potentialNeeds: []
-              }
-            });
-            addedCount++;
-          }
-          botResponse = `✅ Successfully added **${addedCount}** leads to your CRM! You can view them in the Leads tab.`;
+      if (call && call.name === 'add_multiple_leads') {
+        const args = call.args as any;
+        const leadsToAdd = args.leads || [];
+        let addedCount = 0;
+        for (const leadData of leadsToAdd) {
+          await leadService.createLead({
+            resortName: leadData.resortName || 'Unknown Resort',
+            contactPerson: leadData.contactPerson || 'Unknown',
+            phone: leadData.phone || '0000000000',
+            email: leadData.email || '',
+            website: leadData.website || '',
+            whatsapp: leadData.whatsapp || leadData.phone || '',
+            notes: leadData.notes || '',
+            designation: 'Owner/Manager',
+            location: 'Goa',
+            source: 'AI Assistant',
+            assignedTo: myName,
+            status: 'New',
+            interest: 'Unknown',
+            reaction: 'Other',
+            score: 50,
+            contactMethod: 'WhatsApp',
+            firstContactDate: null,
+            lastContactDate: null,
+            nextFollowUpDate: null,
+            followUpType: 'None',
+            followUpNotes: '',
+            intelligence: {
+              category: 'Other',
+              propertySize: 'Unknown',
+              whatsappUsage: 'Unknown',
+              currentAutomation: 'None',
+              potentialNeeds: []
+            }
+          });
+          addedCount++;
         }
-      } else if (part?.text) {
-        botResponse = part.text;
+        botResponse = `✅ Successfully added **${addedCount}** leads to your CRM! You can view them in the Leads tab.`;
       }
       
       setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', content: botResponse }]);
