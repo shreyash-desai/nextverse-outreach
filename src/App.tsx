@@ -4,6 +4,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Leads } from './pages/Leads';
 import { LeadDetail } from './pages/LeadDetail';
 import { FollowUps } from './pages/FollowUps';
+import { Analytics } from './pages/Analytics';
 import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
 import { Team } from './pages/Team';

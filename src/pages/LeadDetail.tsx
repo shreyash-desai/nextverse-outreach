@@ -38,7 +38,7 @@ export function LeadDetail() {
         await activityService.createActivity({
           leadId: lead.id,
           leadName: lead.resortName,
-          type: 'Call Attempt',
+          type: 'Contact',
           description: 'Call not picked. Auto-scheduled follow-up for tomorrow.',
           performedBy: lead.assignedTo,
         });

@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Users, CalendarCheck, Bot, LogOut, Shield } from 'lucide-react';
+import { Home, Users, Bot, LogOut, Shield } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useAuth } from '../../contexts/AuthContext';
 import { isAdmin } from '../../utils/auth';
