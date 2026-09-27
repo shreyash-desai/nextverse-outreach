@@ -6,7 +6,8 @@ import { Send, Bot, User } from 'lucide-react';
 import { leadService } from '../services/leadService';
 import { followUpService } from '../services/followUpService';
 import { getCurrentUserName } from '../utils/auth';
-import { GoogleGenerativeAI, FunctionDeclaration, Schema, Type } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import type { FunctionDeclaration } from '@google/generative-ai';
 
 interface Message {
   id: string;
@@ -63,20 +64,20 @@ export function Chatbot() {
         name: "add_multiple_leads",
         description: "Adds one or multiple new leads to the CRM database.",
         parameters: {
-          type: Type.OBJECT,
+          type: SchemaType.OBJECT,
           properties: {
             leads: {
-              type: Type.ARRAY,
+              type: SchemaType.ARRAY,
               items: {
-                type: Type.OBJECT,
+                type: SchemaType.OBJECT,
                 properties: {
-                  resortName: { type: Type.STRING },
-                  contactPerson: { type: Type.STRING },
-                  phone: { type: Type.STRING },
-                  email: { type: Type.STRING },
-                  website: { type: Type.STRING },
-                  whatsapp: { type: Type.STRING },
-                  notes: { type: Type.STRING, description: "Combine all other information, such as Meta ads, OTA dependency, custom pitch, etc." }
+                  resortName: { type: SchemaType.STRING },
+                  contactPerson: { type: SchemaType.STRING },
+                  phone: { type: SchemaType.STRING },
+                  email: { type: SchemaType.STRING },
+                  website: { type: SchemaType.STRING },
+                  whatsapp: { type: SchemaType.STRING },
+                  notes: { type: SchemaType.STRING, description: "Combine all other information, such as Meta ads, OTA dependency, custom pitch, etc." }
                 },
                 required: ["resortName", "phone"]
               }
