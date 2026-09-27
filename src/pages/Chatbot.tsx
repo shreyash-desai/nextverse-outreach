@@ -61,8 +61,38 @@ export function Chatbot() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           system_instruction: {
-            parts: [{ text: "You are an AI assistant for the Nextverse Outreach CRM. You help the user manage leads and answer questions. Be concise and helpful. Use the provided CRM context." }]
+            parts: [{ text: "You are an AI assistant for the Nextverse Outreach CRM. You help the user manage leads and answer questions. If the user provides information about leads (like a list of resorts), use the add_multiple_leads tool to insert them into the CRM. Extract all extra details like OTA dependency, Meta Ads, and pitches into the 'notes' field." }]
           },
+          tools: [{
+            function_declarations: [
+              {
+                name: "add_multiple_leads",
+                description: "Adds one or multiple new leads to the CRM database.",
+                parameters: {
+                  type: "OBJECT",
+                  properties: {
+                    leads: {
+                      type: "ARRAY",
+                      items: {
+                        type: "OBJECT",
+                        properties: {
+                          resortName: { type: "STRING" },
+                          contactPerson: { type: "STRING" },
+                          phone: { type: "STRING" },
+                          email: { type: "STRING" },
+                          website: { type: "STRING" },
+                          whatsapp: { type: "STRING" },
+                          notes: { type: "STRING", description: "Combine all other information, such as Meta ads, OTA dependency, custom pitch, etc." }
+                        },
+                        required: ["resortName", "phone"]
+                      }
+                    }
+                  },
+                  required: ["leads"]
+                }
+              }
+            ]
+          }],
           contents: [
             { role: 'user', parts: [{ text: `CRM CONTEXT:\n${crmContext}\n\nUSER QUESTION: ${userMessage}` }] }
           ]
@@ -75,7 +105,48 @@ export function Chatbot() {
         throw new Error(data.error.message);
       }
 
-      const botResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't process that.";
+      let botResponse = "I'm sorry, I couldn't process that.";
+      const part = data.candidates?.[0]?.content?.parts?.[0];
+
+      if (part?.functionCall) {
+        if (part.functionCall.name === 'add_multiple_leads') {
+          const leadsToAdd = part.functionCall.args.leads || [];
+          let addedCount = 0;
+          for (const leadData of leadsToAdd) {
+            await leadService.createLead({
+              resortName: leadData.resortName || 'Unknown Resort',
+              contactPerson: leadData.contactPerson || 'Unknown',
+              phone: leadData.phone || '0000000000',
+              email: leadData.email || '',
+              website: leadData.website || '',
+              whatsapp: leadData.whatsapp || leadData.phone || '',
+              notes: leadData.notes || '',
+              designation: 'Owner/Manager',
+              location: 'Goa',
+              source: 'AI Assistant',
+              assignedTo: myName,
+              status: 'New',
+              interest: 'Unknown',
+              reaction: 'None',
+              score: 50,
+              contactMethod: 'WhatsApp',
+              followUpType: 'None',
+              followUpNotes: '',
+              intelligence: {
+                category: 'Resort',
+                propertySize: 'Unknown',
+                whatsappUsage: 'Unknown',
+                currentAutomation: 'None',
+                potentialNeeds: []
+              }
+            });
+            addedCount++;
+          }
+          botResponse = `✅ Successfully added **${addedCount}** leads to your CRM! You can view them in the Leads tab.`;
+        }
+      } else if (part?.text) {
+        botResponse = part.text;
+      }
       
       setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', content: botResponse }]);
 
