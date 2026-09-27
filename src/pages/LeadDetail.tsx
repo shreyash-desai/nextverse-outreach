@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { leadService } from '../services/leadService';
 import { activityService } from '../services/activityService';
+import { followUpService } from '../services/followUpService';
 import type { Lead, Activity } from '../types';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
