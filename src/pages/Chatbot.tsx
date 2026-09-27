@@ -50,7 +50,7 @@ export function Chatbot() {
       `;
 
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      const model = import.meta.env.VITE_GEMINI_MODEL || 'gemini-1.5-flash-8b';
+      const model = import.meta.env.VITE_GEMINI_MODEL || 'gemini-1.5-flash';
 
       if (!apiKey) {
         throw new Error("VITE_GEMINI_API_KEY is not set. Please restart your dev server after adding it to .env.local");
