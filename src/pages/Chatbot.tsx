@@ -85,6 +85,7 @@ export function Chatbot() {
                   email: { type: SchemaType.STRING },
                   website: { type: SchemaType.STRING },
                   whatsapp: { type: SchemaType.STRING },
+                  assignedTo: { type: SchemaType.STRING, description: "The username or first name of the employee to assign this lead to, e.g. Tejas, Tarun" },
                   notes: { type: SchemaType.STRING, description: "Combine all other information, such as Meta ads, OTA dependency, custom pitch, etc." }
                 },
                 required: ["resortName", "phone"]
@@ -129,7 +130,7 @@ export function Chatbot() {
             designation: 'Owner/Manager',
             location: 'Goa',
             source: 'AI Assistant',
-            assignedTo: myName,
+            assignedTo: leadData.assignedTo || myName,
             status: 'New',
             interest: 'Unknown',
             reaction: 'Other',
