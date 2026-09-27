@@ -2,6 +2,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { leadService } from '../services/leadService';
 import { Trash2, Download } from 'lucide-react';
+import { isAdmin } from '../utils/auth';
 
 export function Settings() {
 
@@ -55,29 +56,33 @@ export function Settings() {
       <Card className="p-6">
         <h2 className="text-lg font-semibold text-textPrimary mb-4">Data Management</h2>
         
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-light rounded-2xl border border-border/50 gap-4">
-            <div>
-              <p className="font-medium text-textPrimary">Export Data</p>
-              <p className="text-sm text-textSecondary">Download all leads as a CSV file.</p>
+        {isAdmin() ? (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-light rounded-2xl border border-border/50 gap-4">
+              <div>
+                <p className="font-medium text-textPrimary">Export Data</p>
+                <p className="text-sm text-textSecondary">Download all leads as a CSV file.</p>
+              </div>
+              <Button onClick={handleExportCSV} variant="secondary" className="shrink-0 bg-white">
+                <Download className="w-4 h-4 mr-2" />
+                Export CSV
+              </Button>
             </div>
-            <Button onClick={handleExportCSV} variant="secondary" className="shrink-0 bg-white">
-              <Download className="w-4 h-4 mr-2" />
-              Export CSV
-            </Button>
-          </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-red-50 rounded-2xl border border-red-100 gap-4">
-            <div>
-              <p className="font-medium text-red-700">Clear All Data</p>
-              <p className="text-sm text-red-600/80">Permanently delete all leads from Supabase.</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-red-50 rounded-2xl border border-red-100 gap-4">
+              <div>
+                <p className="font-medium text-red-700">Clear All Data</p>
+                <p className="text-sm text-red-600/80">Permanently delete all leads from Supabase.</p>
+              </div>
+              <Button onClick={handleClearAllData} variant="danger" className="shrink-0">
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete All
+              </Button>
             </div>
-            <Button onClick={handleClearAllData} variant="danger" className="shrink-0">
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete All
-            </Button>
           </div>
-        </div>
+        ) : (
+          <p className="text-textSecondary text-sm">You do not have permission to export or delete data. Please contact an administrator.</p>
+        )}
       </Card>
     </div>
   );

@@ -130,7 +130,7 @@ export function Chatbot() {
             designation: 'Owner/Manager',
             location: 'Goa',
             source: 'AI Assistant',
-            assignedTo: leadData.assignedTo || myName,
+            assignedTo: isAdmin() ? (leadData.assignedTo || myName) : myName,
             status: 'New',
             interest: 'Unknown',
             reaction: 'Other',
