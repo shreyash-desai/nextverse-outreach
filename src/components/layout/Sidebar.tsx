@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Users, CalendarCheck, BarChart2, User, Settings, LogOut, Shield, Bot, Activity } from 'lucide-react';
+import { Home, Users, CalendarCheck, BarChart2, Settings, LogOut, Shield, Bot, Activity } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useAuth } from '../../contexts/AuthContext';
 import { isAdmin } from '../../utils/auth';
@@ -12,17 +12,12 @@ const navItems = [
   { icon: Bot, label: 'AI Chatbot', to: '/chatbot' },
 ];
 
-const bottomItems = [
-  { icon: User, label: 'Profile', to: '/profile' },
-  { icon: Settings, label: 'Settings', to: '/settings' },
-];
-
 export function Sidebar() {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 
@@ -46,8 +41,8 @@ export function Sidebar() {
               cn(
                 'flex items-center lg:px-4 py-3 rounded-2xl transition-all duration-200 group',
                 isActive 
-                  ? 'bg-primary/10 text-primary' 
-                  : 'text-textSecondary hover:bg-gray-50 hover:text-textPrimary'
+                  ? 'bg-primary/10 text-primary font-medium' 
+                  : 'text-textSecondary hover:bg-light hover:text-textPrimary'
               )
             }
             title={item.label}
@@ -77,7 +72,7 @@ export function Sidebar() {
                 cn(
                   'flex items-center lg:px-4 py-3 rounded-2xl transition-all duration-200 group',
                   isActive 
-                    ? 'bg-purple-100 text-purple-700' 
+                    ? 'bg-purple-100 text-purple-700 font-medium' 
                     : 'text-purple-600 hover:bg-purple-50'
                 )
               }
@@ -96,7 +91,7 @@ export function Sidebar() {
                 cn(
                   'flex items-center lg:px-4 py-3 rounded-2xl transition-all duration-200 group',
                   isActive 
-                    ? 'bg-purple-100 text-purple-700' 
+                    ? 'bg-purple-100 text-purple-700 font-medium' 
                     : 'text-purple-600 hover:bg-purple-50'
                 )
               }
@@ -111,28 +106,25 @@ export function Sidebar() {
             </NavLink>
           </>
         )}
-        {bottomItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center lg:px-4 py-3 rounded-2xl transition-all duration-200 group',
-                isActive 
-                  ? 'bg-primary/10 text-primary' 
-                  : 'text-textSecondary hover:bg-gray-50 hover:text-textPrimary'
-              )
-            }
-            title={item.label}
-          >
-            <div className="w-10 h-10 lg:w-auto lg:h-auto mx-auto lg:mx-0 flex items-center justify-center lg:block">
-              <item.icon className="w-5 h-5 stroke-[2px]" />
-            </div>
-            <span className="ml-3 font-medium text-sm hidden lg:block">
-              {item.label}
-            </span>
-          </NavLink>
-        ))}
+        <NavLink
+          to="/settings"
+          className={({ isActive }) =>
+            cn(
+              'flex items-center lg:px-4 py-3 rounded-2xl transition-all duration-200 group',
+              isActive 
+                ? 'bg-primary/10 text-primary font-medium' 
+                : 'text-textSecondary hover:bg-light hover:text-textPrimary'
+            )
+          }
+          title="Settings"
+        >
+          <div className="w-10 h-10 lg:w-auto lg:h-auto mx-auto lg:mx-0 flex items-center justify-center lg:block">
+            <Settings className="w-5 h-5 stroke-[2px]" />
+          </div>
+          <span className="ml-3 font-medium text-sm hidden lg:block">
+            Settings
+          </span>
+        </NavLink>
         <button
           onClick={handleLogout}
           className="w-full flex items-center lg:px-4 py-3 rounded-2xl transition-all duration-200 group text-textSecondary hover:bg-red-50 hover:text-red-600"

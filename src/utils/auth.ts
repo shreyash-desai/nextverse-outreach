@@ -13,5 +13,11 @@ export const getCurrentUserRole = (): string => {
 };
 
 export const isAdmin = (): boolean => {
-  return getCurrentUserRole() === 'Admin';
+  const role = getCurrentUserRole();
+  const email = getCurrentUserEmail().toLowerCase();
+  // Ensure hardcoded founders Kishan & Shreyash retain Admin rights
+  if (email.startsWith('kishan@') || email.startsWith('shreyash@')) {
+    return true;
+  }
+  return role === 'Admin';
 };

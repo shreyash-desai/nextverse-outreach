@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { leadService } from '../services/leadService';
 import { activityService } from '../services/activityService';
@@ -21,8 +21,43 @@ export function LeadDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [isQuickLogging, setIsQuickLogging] = useState(false);
 
+  const loadData = useCallback(async () => {
+    if (!id) return;
+    try {
+      const [foundLead, acts] = await Promise.all([
+        leadService.getLead(id),
+        activityService.getActivitiesForLead(id)
+      ]);
+      if (foundLead) {
+        setLead(foundLead);
+      }
+      setActivities(acts);
+    } catch (err) {
+      console.error('Failed to load lead details:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    loadData();
+
+    const channel = supabase.channel(`public:lead:${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads', filter: `id=eq.${id}` }, () => {
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'activities', filter: `lead_id=eq.${id}` }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, loadData]);
+
   const handleQuickAction = async (action: string) => {
-    if (!lead) return;
+    if (!lead || isQuickLogging) return;
     setIsQuickLogging(true);
     
     try {
@@ -82,92 +117,89 @@ export function LeadDetail() {
       
       await loadData();
     } catch (error) {
-      console.error(error);
+      console.error('Error during quick action:', error);
     } finally {
       setIsQuickLogging(false);
     }
   };
 
-  const loadData = async () => {
-    if (!id) return;
-    const foundLead = await leadService.getLead(id);
-    if (foundLead) {
-      setLead(foundLead);
-      const acts = await activityService.getActivitiesForLead(id);
-      setActivities(acts);
-    }
-    setIsLoading(false);
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-textSecondary text-sm">Loading lead details…</p>
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    loadData();
-
-    const channel = supabase.channel(`public:lead:${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads', filter: `id=eq.${id}` }, loadData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'activities', filter: `lead_id=eq.${id}` }, loadData)
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [id]);
-
-  if (isLoading) return (
-    <div className="flex items-center justify-center h-64">
-      <p className="text-textSecondary text-sm">Loading…</p>
-    </div>
-  );
-
-  if (!lead) return (
-    <div className="flex flex-col items-center justify-center h-64 gap-3">
-      <p className="text-textSecondary">Lead not found.</p>
-      <Button variant="secondary" onClick={() => navigate('/leads')}>Back to Leads</Button>
-    </div>
-  );
+  if (!lead) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <p className="text-textSecondary">Lead not found.</p>
+        <Button variant="secondary" onClick={() => navigate('/leads')}>Back to Leads</Button>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-5 animate-in fade-in duration-500 pb-28 md:pb-10">
+    <div className="space-y-5 animate-in fade-in duration-500 pb-28 md:pb-10 max-w-full overflow-hidden">
 
       {/* Header */}
       <div className="pt-4">
         <button
           onClick={() => navigate('/leads')}
-          className="flex items-center text-sm text-textSecondary hover:text-textPrimary mb-3 transition-colors"
+          className="flex items-center text-sm text-textSecondary hover:text-textPrimary mb-3 transition-colors min-h-[36px]"
         >
-          <ArrowLeft className="w-4 h-4 mr-1" />
+          <ArrowLeft className="w-4 h-4 mr-1.5" />
           Back to Leads
         </button>
 
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3.5">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl md:text-[28px] font-semibold text-textPrimary tracking-tight">{lead.resortName}</h1>
+              <h1 className="text-xl md:text-[28px] font-semibold text-textPrimary tracking-tight break-words">
+                {lead.resortName}
+              </h1>
               <Badge type={lead.status}>{lead.status}</Badge>
             </div>
-            <div className="flex items-center gap-2 mt-1 text-[13px] md:text-[15px] text-textSecondary flex-wrap">
-              <span className="font-medium text-textPrimary">{lead.contactPerson}</span>
-              <span>·</span>
-              <span>{lead.designation}</span>
-              <span>·</span>
-              <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {lead.location}</span>
+            <div className="flex items-center gap-2 mt-1.5 text-[13px] md:text-[15px] text-textSecondary flex-wrap">
+              <span className="font-medium text-textPrimary">{lead.contactPerson || 'No contact person'}</span>
+              {lead.designation && (
+                <>
+                  <span>·</span>
+                  <span>{lead.designation}</span>
+                </>
+              )}
+              {lead.location && (
+                <>
+                  <span>·</span>
+                  <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 shrink-0" /> {lead.location}</span>
+                </>
+              )}
             </div>
           </div>
           <div className="flex gap-2 shrink-0">
-            <button
-              onClick={() => window.open(`https://wa.me/${lead.whatsapp}`, '_blank')}
-              className="flex items-center gap-1.5 px-3 h-9 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-medium hover:bg-emerald-100 transition-colors"
-            >
-              <MessageCircle className="w-4 h-4" /> WA
-            </button>
-            <button
-              onClick={() => window.location.href = `tel:${lead.phone}`}
-              className="flex items-center gap-1.5 px-3 h-9 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-sm font-medium hover:bg-blue-100 transition-colors"
-            >
-              <Phone className="w-4 h-4" /> Call
-            </button>
+            {lead.whatsapp && (
+              <button
+                onClick={() => window.open(`https://wa.me/${lead.whatsapp}`, '_blank')}
+                className="flex items-center gap-1.5 px-3.5 h-10 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-medium hover:bg-emerald-100 transition-colors"
+                title="WhatsApp"
+              >
+                <MessageCircle className="w-4 h-4" /> WA
+              </button>
+            )}
+            {lead.phone && (
+              <button
+                onClick={() => window.location.href = `tel:${lead.phone}`}
+                className="flex items-center gap-1.5 px-3.5 h-10 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-sm font-medium hover:bg-blue-100 transition-colors"
+                title="Call"
+              >
+                <Phone className="w-4 h-4" /> Call
+              </button>
+            )}
             <button
               onClick={() => setIsEditDrawerOpen(true)}
-              className="flex items-center gap-1.5 px-3 h-9 rounded-xl border border-border bg-surface text-textSecondary text-sm font-medium hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1.5 px-3.5 h-10 rounded-xl border border-border bg-surface text-textSecondary text-sm font-medium hover:bg-gray-50 transition-colors"
+              title="Edit Lead"
             >
               <Edit2 className="w-4 h-4" /> Edit
             </button>
@@ -176,41 +208,41 @@ export function LeadDetail() {
       </div>
 
       {/* Quick Actions */}
-      <div className="flex gap-2 pb-2">
+      <div className="flex gap-2 pb-1 overflow-x-auto no-scrollbar">
         <button 
           onClick={() => handleQuickAction('Not Picked')}
           disabled={isQuickLogging}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 h-10 rounded-xl bg-orange-50 text-orange-700 text-sm font-medium hover:bg-orange-100 transition-colors border border-orange-200"
+          className="flex-1 min-w-[105px] flex items-center justify-center gap-1.5 px-3 h-10 rounded-xl bg-orange-50 text-orange-700 text-sm font-medium hover:bg-orange-100 transition-colors border border-orange-200 disabled:opacity-50"
         >
           <Phone className="w-4 h-4" /> Not Picked
         </button>
         <button 
           onClick={() => handleQuickAction('Interested')}
           disabled={isQuickLogging}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 h-10 rounded-xl bg-emerald-50 text-emerald-700 text-sm font-medium hover:bg-emerald-100 transition-colors border border-emerald-200"
+          className="flex-1 min-w-[105px] flex items-center justify-center gap-1.5 px-3 h-10 rounded-xl bg-emerald-50 text-emerald-700 text-sm font-medium hover:bg-emerald-100 transition-colors border border-emerald-200 disabled:opacity-50"
         >
           <Zap className="w-4 h-4" /> Interested
         </button>
         <button 
           onClick={() => handleQuickAction('Not Interested')}
           disabled={isQuickLogging}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 h-10 rounded-xl bg-gray-50 text-gray-700 text-sm font-medium hover:bg-gray-100 transition-colors border border-gray-200"
+          className="flex-1 min-w-[115px] flex items-center justify-center gap-1.5 px-3 h-10 rounded-xl bg-gray-50 text-gray-700 text-sm font-medium hover:bg-gray-100 transition-colors border border-gray-200 disabled:opacity-50"
         >
           Not Interested
         </button>
       </div>
 
-      {/* Overview Mini-Cards — horizontal scroll on mobile */}
+      {/* Overview Mini-Cards */}
       <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
         {[
           { label: 'Interest', value: <Badge type={lead.interest}>{lead.interest}</Badge> },
-          { label: 'Lead Score', value: <span className="text-lg font-semibold text-primary">{lead.score}</span> },
-          { label: 'Assigned To', value: lead.assignedTo },
-          { label: 'Reaction', value: lead.reaction },
+          { label: 'Lead Score', value: <span className="text-lg font-semibold text-primary">{lead.score || 0}</span> },
+          { label: 'Assigned To', value: lead.assignedTo || 'Unassigned' },
+          { label: 'Reaction', value: lead.reaction || 'None' },
           { label: 'Last Contact', value: lead.lastContactDate ? new Date(lead.lastContactDate).toLocaleDateString([], { day: 'numeric', month: 'short' }) : 'Never' },
           { label: 'Next Follow-up', value: lead.nextFollowUpDate ? new Date(lead.nextFollowUpDate).toLocaleDateString([], { day: 'numeric', month: 'short' }) : 'None' },
         ].map((item) => (
-          <Card key={item.label} className="p-3 flex flex-col justify-center min-w-[110px] shrink-0">
+          <Card key={item.label} className="p-3 flex flex-col justify-center min-w-[115px] shrink-0">
             <p className="text-[11px] font-medium text-textSecondary mb-1">{item.label}</p>
             <div className="font-semibold text-textPrimary text-sm">{item.value}</div>
           </Card>
@@ -219,44 +251,42 @@ export function LeadDetail() {
 
       {/* Main content */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* Left / full width on mobile */}
         <div className="md:col-span-2 space-y-5">
           <Card className="p-5">
             <h2 className="text-base font-semibold text-textPrimary mb-3">Conversation Notes</h2>
-            <div className="bg-light rounded-xl p-4 border border-border/50 text-sm text-textPrimary leading-relaxed whitespace-pre-wrap">
+            <div className="bg-light rounded-xl p-4 border border-border/50 text-sm text-textPrimary leading-relaxed whitespace-pre-wrap break-words">
               {lead.notes || 'No notes available.'}
             </div>
           </Card>
 
           <Card className="p-5">
             <h2 className="text-base font-semibold text-textPrimary mb-4 flex items-center gap-2">
-              <BrainCircuit className="w-5 h-5 text-primary" />
+              <BrainCircuit className="w-5 h-5 text-primary shrink-0" />
               Automation Opportunity
             </h2>
             <div className="grid grid-cols-2 gap-4">
               {[
-                { label: 'Resort Category', value: lead.intelligence.category },
-                { label: 'Property Size', value: lead.intelligence.propertySize },
-                { label: 'WhatsApp Usage', value: lead.intelligence.whatsappUsage },
-                { label: 'Current Automation', value: lead.intelligence.currentAutomation },
+                { label: 'Resort Category', value: lead.intelligence?.category || 'Unknown' },
+                { label: 'Property Size', value: lead.intelligence?.propertySize || 'Unknown' },
+                { label: 'WhatsApp Usage', value: lead.intelligence?.whatsappUsage || 'Unknown' },
+                { label: 'Current Automation', value: lead.intelligence?.currentAutomation || 'None' },
               ].map((i) => (
                 <div key={i.label}>
                   <p className="text-xs text-textSecondary mb-0.5">{i.label}</p>
-                  <p className="text-sm font-medium text-textPrimary">{i.value}</p>
+                  <p className="text-sm font-medium text-textPrimary break-words">{i.value}</p>
                 </div>
               ))}
             </div>
           </Card>
         </div>
 
-        {/* Sidebar */}
         <div className="space-y-5">
           <Card className="p-5">
             <h2 className="text-base font-semibold text-textPrimary mb-4 flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-textSecondary" />
+              <Building2 className="w-4 h-4 text-textSecondary shrink-0" />
               Contact Details
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               {[
                 { icon: Phone, label: 'Phone', value: lead.phone },
                 { icon: MessageCircle, label: 'WhatsApp', value: lead.whatsapp },
@@ -265,9 +295,9 @@ export function LeadDetail() {
               ].map(({ icon: Icon, label, value }) => (
                 <div key={label} className="flex items-start gap-3">
                   <Icon className="w-4 h-4 mt-0.5 text-textMuted shrink-0" />
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="text-xs text-textSecondary">{label}</p>
-                    <p className="text-sm font-medium text-textPrimary">{value || '—'}</p>
+                    <p className="text-sm font-medium text-textPrimary break-words">{value || '—'}</p>
                   </div>
                 </div>
               ))}
@@ -286,7 +316,7 @@ export function LeadDetail() {
                       <div className="absolute left-1 top-5 bottom-[-16px] w-[2px] bg-border" />
                     )}
                     <div className="absolute left-[-1px] top-1.5 w-2 h-2 rounded-full bg-primary/40 ring-4 ring-white" />
-                    <p className="text-[13px] text-textPrimary">
+                    <p className="text-[13px] text-textPrimary break-words">
                       <span className="font-medium">{activity.performedBy}</span> {activity.description}
                     </p>
                     <p className="text-[11px] text-textMuted mt-0.5">

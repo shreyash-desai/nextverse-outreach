@@ -11,31 +11,35 @@ export function Dashboard() {
   const navigate = useNavigate();
 
   const handleComplete = async (id: string) => {
-    await followUpService.completeFollowUp(id);
+    try {
+      await followUpService.completeFollowUp(id);
+    } catch (err) {
+      console.error('Failed to complete followup from dashboard:', err);
+    }
   };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-textSecondary text-sm">Loading…</p>
+        <p className="text-textSecondary text-sm">Loading dashboard…</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-28 md:pb-10">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-28 md:pb-10 max-w-full overflow-hidden">
       
       {/* Hero */}
       <div className="flex items-center justify-between pt-4">
-        <div>
-          <h1 className="text-[22px] md:text-[28px] font-semibold text-textPrimary tracking-tight">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-[22px] md:text-[28px] font-semibold text-textPrimary tracking-tight break-words">
             Good {getGreeting()}, {getCurrentUserName()}
           </h1>
           <p className="text-textSecondary mt-0.5 text-[13px] md:text-[15px]">
             Your Goa outreach at a glance.
           </p>
         </div>
-        <Button onClick={() => navigate('/leads')} className="rounded-2xl shrink-0 h-10 md:h-11 px-4 md:px-5 shadow-sm text-sm">
+        <Button onClick={() => navigate('/leads')} className="rounded-2xl shrink-0 h-11 px-4 md:px-5 shadow-sm text-sm">
           <Plus className="w-4 h-4 mr-1.5" />
           Add Lead
         </Button>
@@ -50,17 +54,17 @@ export function Dashboard() {
           { label: "Today's Follow-ups", value: todaysFollowUps.length, accent: false },
           { label: 'Converted', value: stats.converted, accent: true },
         ].map((m) => (
-          <Card key={m.label} className="p-4 flex flex-col justify-center">
+          <Card key={m.label} className="p-3.5 sm:p-4 flex flex-col justify-center">
             <p className="text-[11px] md:text-sm font-medium text-textSecondary mb-1 leading-tight">{m.label}</p>
             <p className={`text-2xl font-semibold ${m.accent ? 'text-primary' : 'text-textPrimary'}`}>{m.value}</p>
           </Card>
         ))}
       </div>
 
-      {/* Pipeline — horizontal scroll on all sizes */}
+      {/* Pipeline — horizontal scroll on mobile */}
       <section>
         <h2 className="text-base md:text-lg font-semibold text-textPrimary mb-3">Pipeline</h2>
-        <Card className="p-1">
+        <Card className="p-1 overflow-hidden">
           <div className="flex overflow-x-auto no-scrollbar">
             {[
               { label: 'New', count: pipeline.new, color: 'bg-gray-100 text-gray-700' },
@@ -93,29 +97,44 @@ export function Dashboard() {
               </Card>
             ) : (
               todaysFollowUps.map(f => (
-                <Card key={f.id} className="p-4">
+                <Card key={f.id} className="p-4 overflow-hidden">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/leads/${f.leadId}`)}>
-                      <h3 className="font-semibold text-textPrimary text-[14px] truncate">{f.leadName}</h3>
-                      <p className="text-xs text-textSecondary mt-0.5">with {f.contactPerson}</p>
-                      <div className="flex items-center gap-2 mt-2 text-xs font-medium text-textMuted">
-                        <span className="bg-light px-2 py-0.5 rounded-md">{f.type}</span>
-                        <span>{new Date(f.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      <h3 className="font-semibold text-textPrimary text-[14px] break-words">{f.leadName}</h3>
+                      <p className="text-xs text-textSecondary mt-0.5 break-words">with {f.contactPerson || 'Contact'}</p>
+                      <div className="flex items-center gap-2 mt-2 text-xs font-medium text-textMuted flex-wrap">
+                        <span className="bg-light px-2 py-0.5 rounded-md border border-border/40">{f.type}</span>
+                        <span>{f.date ? new Date(f.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                       </div>
                     </div>
                     <div className="flex gap-1.5 shrink-0">
-                      {f.type === 'WhatsApp' && (
-                        <button className="w-9 h-9 rounded-xl border border-border bg-surface flex items-center justify-center text-emerald-600" onClick={() => window.open(`https://wa.me/${f.whatsapp}`, '_blank')}>
+                      {f.type === 'WhatsApp' && f.whatsapp && (
+                        <button 
+                          className="w-11 h-11 rounded-xl border border-border bg-surface flex items-center justify-center text-emerald-600 hover:bg-emerald-50 transition-colors"
+                          onClick={() => window.open(`https://wa.me/${f.whatsapp}`, '_blank')}
+                          title="WhatsApp"
+                          aria-label="WhatsApp"
+                        >
                           <MessageCircle className="w-4 h-4" />
                         </button>
                       )}
-                      {f.type === 'Call' && (
-                        <button className="w-9 h-9 rounded-xl border border-border bg-surface flex items-center justify-center text-blue-600" onClick={() => window.location.href = `tel:${f.phone}`}>
+                      {f.type === 'Call' && f.phone && (
+                        <button 
+                          className="w-11 h-11 rounded-xl border border-border bg-surface flex items-center justify-center text-blue-600 hover:bg-blue-50 transition-colors"
+                          onClick={() => window.location.href = `tel:${f.phone}`}
+                          title="Call"
+                          aria-label="Call"
+                        >
                           <Phone className="w-4 h-4" />
                         </button>
                       )}
-                      <button className="w-9 h-9 rounded-xl border border-border bg-surface flex items-center justify-center text-textMuted hover:text-emerald-600" onClick={() => handleComplete(f.id)}>
-                        <CheckCircle className="w-4 h-4" />
+                      <button 
+                        className="w-11 h-11 rounded-xl border border-border bg-surface flex items-center justify-center text-textMuted hover:text-emerald-600 hover:border-emerald-200 transition-colors"
+                        onClick={() => handleComplete(f.id)}
+                        title="Mark Completed"
+                        aria-label="Mark Completed"
+                      >
+                        <CheckCircle className="w-5 h-5" />
                       </button>
                     </div>
                   </div>
@@ -135,7 +154,7 @@ export function Dashboard() {
                     <div className="absolute left-1 top-5 bottom-[-20px] w-[2px] bg-border" />
                   )}
                   <div className="absolute left-[-1px] top-1.5 w-2 h-2 rounded-full bg-primary/40 ring-4 ring-light" />
-                  <p className="text-[13px] text-textPrimary">
+                  <p className="text-[13px] text-textPrimary break-words">
                     <span className="font-medium">{activity.performedBy}</span>{' '}
                     {activity.description.toLowerCase()} for{' '}
                     <span className="font-medium">{activity.leadName}</span>

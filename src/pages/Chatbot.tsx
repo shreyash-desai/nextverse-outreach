@@ -70,7 +70,7 @@ export function Chatbot() {
       
       const addMultipleLeadsDeclaration: FunctionDeclaration = {
         name: "add_multiple_leads",
-        description: "Adds one or multiple new leads to the CRM database.",
+        description: "Adds one or multiple new leads to the CRM database. Do NOT invent fake phone numbers like 0000000000 if not provided.",
         parameters: {
           type: SchemaType.OBJECT,
           properties: {
@@ -81,14 +81,14 @@ export function Chatbot() {
                 properties: {
                   resortName: { type: SchemaType.STRING },
                   contactPerson: { type: SchemaType.STRING },
-                  phone: { type: SchemaType.STRING },
+                  phone: { type: SchemaType.STRING, description: "Phone number if provided in user text, otherwise empty string" },
                   email: { type: SchemaType.STRING },
                   website: { type: SchemaType.STRING },
                   whatsapp: { type: SchemaType.STRING },
                   assignedTo: { type: SchemaType.STRING, description: "The username or first name of the employee to assign this lead to, e.g. Tejas, Tarun" },
                   notes: { type: SchemaType.STRING, description: "Combine all other information, such as Meta ads, OTA dependency, custom pitch, etc." }
                 },
-                required: ["resortName", "phone"]
+                required: ["resortName"]
               }
             }
           },
@@ -98,7 +98,7 @@ export function Chatbot() {
 
       const model = genAI.getGenerativeModel({
         model: modelName,
-        systemInstruction: "You are an AI assistant for the Nextverse Outreach CRM. You help the user manage leads and answer questions. If the user provides information about leads (like a list of resorts), use the add_multiple_leads tool to insert them into the CRM. Extract all extra details like OTA dependency, Meta Ads, and pitches into the 'notes' field.",
+        systemInstruction: "You are an AI assistant for the Nextverse Outreach CRM. You help the user manage leads and answer questions. If the user provides information about leads (like a list of resorts), use the add_multiple_leads tool to insert them into the CRM. Never invent fake phone numbers, emails, or names. If a field is missing, leave it as an empty string. Extract all extra details like OTA dependency, Meta Ads, and pitches into the 'notes' field.",
         tools: [{ functionDeclarations: [addMultipleLeadsDeclaration] }],
       });
 
@@ -118,14 +118,19 @@ export function Chatbot() {
         const args = call.args as any;
         const leadsToAdd = args.leads || [];
         let addedCount = 0;
+        let failedCount = 0;
+
         for (const leadData of leadsToAdd) {
-          await leadService.createLead({
-            resortName: leadData.resortName || 'Unknown Resort',
-            contactPerson: leadData.contactPerson || 'Unknown',
-            phone: leadData.phone || '0000000000',
+          const rawPhone = leadData.phone ? String(leadData.phone).trim() : '';
+          const rawWhatsapp = leadData.whatsapp ? String(leadData.whatsapp).trim() : '';
+          
+          const created = await leadService.createLead({
+            resortName: leadData.resortName || 'Untitled Lead',
+            contactPerson: leadData.contactPerson || '',
+            phone: rawPhone,
             email: leadData.email || '',
             website: leadData.website || '',
-            whatsapp: leadData.whatsapp || leadData.phone || '',
+            whatsapp: rawWhatsapp || rawPhone,
             notes: leadData.notes || '',
             designation: 'Owner/Manager',
             location: 'Goa',
@@ -149,9 +154,19 @@ export function Chatbot() {
               potentialNeeds: []
             }
           });
-          addedCount++;
+
+          if (created) {
+            addedCount++;
+          } else {
+            failedCount++;
+          }
         }
-        botResponse = `✅ Successfully added **${addedCount}** leads to your CRM! You can view them in the Leads tab.`;
+
+        if (failedCount > 0) {
+          botResponse = `Added **${addedCount}** leads, but **${failedCount}** failed to insert into Supabase.`;
+        } else {
+          botResponse = `✅ Successfully added **${addedCount}** leads to your CRM! You can view them in the Leads tab.`;
+        }
       }
       
       // Save bot response to DB
@@ -171,20 +186,20 @@ export function Chatbot() {
   };
 
   return (
-    <div className="h-[calc(100vh-80px)] md:h-[calc(100vh-40px)] flex flex-col pt-4 pb-20 md:pb-0">
-      <div className="mb-4">
+    <div className="h-[calc(100dvh-120px)] md:h-[calc(100vh-40px)] flex flex-col pt-3 pb-safe max-w-full overflow-hidden">
+      <div className="mb-3 shrink-0">
         <h1 className="text-[22px] md:text-[28px] font-semibold text-textPrimary tracking-tight">AI Assistant</h1>
       </div>
 
-      <Card className="flex-1 flex flex-col overflow-hidden bg-surface/50 border border-primary/20 shadow-lg shadow-primary/5">
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      <Card className="flex-1 flex flex-col overflow-hidden bg-surface/50 border border-primary/20 shadow-lg shadow-primary/5 p-0">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((msg) => (
             <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`flex max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'} items-end gap-2`}>
+              <div className={`flex max-w-[90%] sm:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'} items-end gap-2`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-purple-100 text-purple-600'}`}>
                   {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-5 h-5" />}
                 </div>
-                <div className={`px-4 py-3 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-primary text-white rounded-br-sm' : 'bg-white border border-border shadow-sm rounded-bl-sm text-textPrimary'}`}>
+                <div className={`px-4 py-3 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-primary text-white rounded-br-sm' : 'bg-white border border-border shadow-sm rounded-bl-sm text-textPrimary'} break-words`}>
                   <p className="whitespace-pre-wrap">{msg.content}</p>
                 </div>
               </div>
@@ -205,11 +220,11 @@ export function Chatbot() {
           <div ref={messagesEndRef} />
         </div>
         
-        <div className="p-4 bg-white border-t border-border">
+        <div className="p-3 sm:p-4 bg-white border-t border-border shrink-0">
           <form onSubmit={handleSend} className="flex gap-2 items-end">
             <Textarea 
               name="message" 
-              placeholder="Paste your leads here or ask a question..." 
+              placeholder="Paste leads here or ask a CRM question..." 
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => {
@@ -218,11 +233,16 @@ export function Chatbot() {
                   handleSend(e as any);
                 }
               }}
-              className="flex-1 mb-0 resize-y min-h-[44px] max-h-[300px]" 
-              rows={3}
+              className="flex-1 mb-0 resize-y min-h-[44px] max-h-[220px]" 
+              rows={2}
               disabled={isLoading}
             />
-            <Button type="submit" disabled={isLoading || !input.trim()} className="w-12 h-[44px] px-0 flex justify-center shrink-0">
+            <Button
+              type="submit"
+              disabled={isLoading || !input.trim()}
+              className="w-12 h-[44px] px-0 flex justify-center shrink-0 rounded-xl"
+              aria-label="Send message"
+            >
               <Send className="w-5 h-5" />
             </Button>
           </form>
