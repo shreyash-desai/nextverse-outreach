@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface DrawerProps {
@@ -22,8 +23,8 @@ export function Drawer({ isOpen, onClose, title, children }: DrawerProps) {
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[70] flex items-end md:items-stretch md:justify-end">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-end md:items-stretch md:justify-end">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-dark/60 backdrop-blur-sm transition-opacity"
@@ -49,11 +50,12 @@ export function Drawer({ isOpen, onClose, title, children }: DrawerProps) {
           </button>
         </div>
         
-        {/* Content area: scrolls independently */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 bg-light/30">
+        {/* Content area: scrolls independently or hosts full-height forms */}
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col p-4 sm:p-6 bg-light/30">
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

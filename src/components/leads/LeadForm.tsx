@@ -219,9 +219,9 @@ export function LeadForm({ initialData, onSuccess, onCancel }: LeadFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col min-h-full">
-      {/* Scrollable form body with generous bottom padding so sticky footer never overlaps */}
-      <div className="space-y-6 pb-24 md:pb-20">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full -m-4 sm:-m-6">
+      {/* Scrollable Form Body */}
+      <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-6">
         {statusMessage && (
           <div
             className={`p-3.5 rounded-xl text-sm font-medium flex items-center gap-2.5 transition-all ${
@@ -442,8 +442,8 @@ export function LeadForm({ initialData, onSuccess, onCancel }: LeadFormProps) {
         </div>
       </div>
 
-      {/* Sticky Bottom Actions Bar: Always visible above mobile safe area and keyboard */}
-      <div className="sticky bottom-0 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 px-4 sm:px-6 py-4 bg-surface/98 backdrop-blur-md border-t border-border flex items-center justify-end gap-3 z-30 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] mt-auto pb-[max(1rem,env(safe-area-inset-bottom))]">
+      {/* Persistent Bottom Actions Bar: Always fixed above safe area and never covered */}
+      <div className="shrink-0 px-4 sm:px-6 py-3.5 bg-surface border-t border-border flex items-center justify-end gap-3 z-30 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] pb-[max(0.875rem,env(safe-area-inset-bottom))]">
         <Button
           variant="secondary"
           type="button"

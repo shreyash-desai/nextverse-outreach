@@ -5,6 +5,7 @@ import { MessageCircle, Phone, CheckCircle, Plus } from 'lucide-react';
 import { followUpService } from '../services/followUpService';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUserName } from '../utils/auth';
+import { formatWhatsAppUrl, isValidPhoneNumber } from '../utils/phone';
 
 export function Dashboard() {
   const { stats, todaysFollowUps, activities, pipeline, isLoading } = useDashboardData();
@@ -96,50 +97,54 @@ export function Dashboard() {
                 No follow-ups scheduled for today. 🎉
               </Card>
             ) : (
-              todaysFollowUps.map(f => (
-                <Card key={f.id} className="p-4 overflow-hidden">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/leads/${f.leadId}`)}>
-                      <h3 className="font-semibold text-textPrimary text-[14px] break-words">{f.leadName}</h3>
-                      <p className="text-xs text-textSecondary mt-0.5 break-words">with {f.contactPerson || 'Contact'}</p>
-                      <div className="flex items-center gap-2 mt-2 text-xs font-medium text-textMuted flex-wrap">
-                        <span className="bg-light px-2 py-0.5 rounded-md border border-border/40">{f.type}</span>
-                        <span>{f.date ? new Date(f.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+              todaysFollowUps.map(f => {
+                const waUrl = formatWhatsAppUrl(f.whatsapp);
+                const hasPhone = isValidPhoneNumber(f.phone);
+                return (
+                  <Card key={f.id} className="p-4 overflow-hidden">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/leads/${f.leadId}`)}>
+                        <h3 className="font-semibold text-textPrimary text-[14px] break-words">{f.leadName}</h3>
+                        <p className="text-xs text-textSecondary mt-0.5 break-words">with {f.contactPerson || 'Contact'}</p>
+                        <div className="flex items-center gap-2 mt-2 text-xs font-medium text-textMuted flex-wrap">
+                          <span className="bg-light px-2 py-0.5 rounded-md border border-border/40">{f.type}</span>
+                          <span>{f.date ? new Date(f.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5 shrink-0">
+                        {f.type === 'WhatsApp' && waUrl && (
+                          <button 
+                            className="w-11 h-11 rounded-xl border border-border bg-surface flex items-center justify-center text-emerald-600 hover:bg-emerald-50 transition-colors"
+                            onClick={() => window.open(waUrl, '_blank', 'noopener,noreferrer')}
+                            title="WhatsApp"
+                            aria-label="WhatsApp"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                          </button>
+                        )}
+                        {f.type === 'Call' && hasPhone && (
+                          <button 
+                            className="w-11 h-11 rounded-xl border border-border bg-surface flex items-center justify-center text-blue-600 hover:bg-blue-50 transition-colors"
+                            onClick={() => window.location.href = `tel:${f.phone}`}
+                            title="Call"
+                            aria-label="Call"
+                          >
+                            <Phone className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button 
+                          className="w-11 h-11 rounded-xl border border-border bg-surface flex items-center justify-center text-textMuted hover:text-emerald-600 hover:border-emerald-200 transition-colors"
+                          onClick={() => handleComplete(f.id)}
+                          title="Mark Completed"
+                          aria-label="Mark Completed"
+                        >
+                          <CheckCircle className="w-5 h-5" />
+                        </button>
                       </div>
                     </div>
-                    <div className="flex gap-1.5 shrink-0">
-                      {f.type === 'WhatsApp' && f.whatsapp && (
-                        <button 
-                          className="w-11 h-11 rounded-xl border border-border bg-surface flex items-center justify-center text-emerald-600 hover:bg-emerald-50 transition-colors"
-                          onClick={() => window.open(`https://wa.me/${f.whatsapp}`, '_blank')}
-                          title="WhatsApp"
-                          aria-label="WhatsApp"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                        </button>
-                      )}
-                      {f.type === 'Call' && f.phone && (
-                        <button 
-                          className="w-11 h-11 rounded-xl border border-border bg-surface flex items-center justify-center text-blue-600 hover:bg-blue-50 transition-colors"
-                          onClick={() => window.location.href = `tel:${f.phone}`}
-                          title="Call"
-                          aria-label="Call"
-                        >
-                          <Phone className="w-4 h-4" />
-                        </button>
-                      )}
-                      <button 
-                        className="w-11 h-11 rounded-xl border border-border bg-surface flex items-center justify-center text-textMuted hover:text-emerald-600 hover:border-emerald-200 transition-colors"
-                        onClick={() => handleComplete(f.id)}
-                        title="Mark Completed"
-                        aria-label="Mark Completed"
-                      >
-                        <CheckCircle className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                </Card>
-              ))
+                  </Card>
+                );
+              })
             )}
           </div>
         </section>
