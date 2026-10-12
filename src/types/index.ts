@@ -32,11 +32,26 @@ export type Reaction =
   | 'Other';
 
 export interface ResortIntelligence {
-  category: 'Luxury' | 'Premium' | 'Boutique' | 'Budget' | 'Villa' | 'Hotel' | 'Beach Resort' | 'Other';
-  propertySize: 'Small' | 'Medium' | 'Large' | 'Unknown';
-  whatsappUsage: 'No WhatsApp' | 'Basic WhatsApp' | 'WhatsApp Business' | 'Automated' | 'Unknown';
-  currentAutomation: 'None' | 'Basic Auto Reply' | 'Chatbot' | 'Full Automation' | 'Unknown';
-  potentialNeeds: string[]; // e.g. ['Booking Enquiries', 'FAQs']
+  category?: 'Luxury' | 'Premium' | 'Boutique' | 'Budget' | 'Villa' | 'Hotel' | 'Beach Resort' | 'Other' | string;
+  propertySize?: 'Small' | 'Medium' | 'Large' | 'Unknown' | string;
+  whatsappUsage?: 'No WhatsApp' | 'Basic WhatsApp' | 'WhatsApp Business' | 'Automated' | 'Unknown' | string;
+  currentAutomation?: 'None' | 'Basic Auto Reply' | 'Chatbot' | 'Full Automation' | 'Unknown' | string;
+  potentialNeeds?: string[]; // e.g. ['Booking Enquiries', 'FAQs']
+  
+  // Property Research & Intelligence (Goa Campaign & Google Maps data)
+  googleRating?: number | string | null;
+  googleReviewCount?: number | string | null;
+  googleMapsUrl?: string | null;
+  phoneSourceType?: string | null;
+  verificationStatus?: string | null;
+
+  // Raw database JSONB support for snake_case keys
+  google_rating?: number | string | null;
+  google_review_count?: number | string | null;
+  google_maps_url?: string | null;
+  phone_source_type?: string | null;
+  verification_status?: string | null;
+  [key: string]: any;
 }
 
 export interface Lead {

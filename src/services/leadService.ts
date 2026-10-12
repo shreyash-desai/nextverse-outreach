@@ -66,9 +66,40 @@ function mapLeadFromDB(row: any): Lead {
     nextFollowUpDate: row.next_follow_up_date,
     followUpType: row.follow_up_type,
     followUpNotes: row.follow_up_notes,
-    intelligence: row.intelligence,
+    intelligence: normalizeIntelligence(row.intelligence),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+function normalizeIntelligence(rawIntel: any): any {
+  if (!rawIntel || typeof rawIntel !== 'object') {
+    return {
+      category: 'Other',
+      propertySize: 'Unknown',
+      whatsappUsage: 'Unknown',
+      currentAutomation: 'None',
+      potentialNeeds: [],
+      googleRating: null,
+      googleReviewCount: null,
+      googleMapsUrl: null,
+      phoneSourceType: null,
+      verificationStatus: null,
+    };
+  }
+
+  return {
+    ...rawIntel,
+    category: rawIntel.category || rawIntel.property_category || 'Other',
+    propertySize: rawIntel.propertySize || rawIntel.property_size || 'Unknown',
+    whatsappUsage: rawIntel.whatsappUsage || rawIntel.whatsapp_usage || 'Unknown',
+    currentAutomation: rawIntel.currentAutomation || rawIntel.current_automation || 'None',
+    potentialNeeds: Array.isArray(rawIntel.potentialNeeds) ? rawIntel.potentialNeeds : (rawIntel.potential_needs || []),
+    googleRating: rawIntel.googleRating ?? rawIntel.google_rating ?? null,
+    googleReviewCount: rawIntel.googleReviewCount ?? rawIntel.google_review_count ?? null,
+    googleMapsUrl: rawIntel.googleMapsUrl || rawIntel.google_maps_url || rawIntel.maps_url || null,
+    phoneSourceType: rawIntel.phoneSourceType || rawIntel.phone_source_type || null,
+    verificationStatus: rawIntel.verificationStatus || rawIntel.verification_status || null,
   };
 }
 

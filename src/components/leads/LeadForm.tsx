@@ -154,7 +154,7 @@ export function LeadForm({ initialData, onSuccess, onCancel }: LeadFormProps) {
           designation: designation.trim(),
           location: location.trim() || 'Goa',
           phone: phone.trim(),
-          whatsapp: (whatsapp.trim() || phone.trim()),
+          whatsapp: whatsapp.trim(),
           email: email.trim(),
           website: website.trim(),
           source,
@@ -289,7 +289,7 @@ export function LeadForm({ initialData, onSuccess, onCancel }: LeadFormProps) {
               name="whatsapp"
               value={whatsapp}
               onChange={(e) => setWhatsapp(e.target.value)}
-              placeholder="Leave blank to use Phone"
+              placeholder="e.g. +91 9876543210 (optional)"
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -363,12 +363,13 @@ export function LeadForm({ initialData, onSuccess, onCancel }: LeadFormProps) {
                 name="assignedTo" 
                 value={assignedTo}
                 onChange={(e) => setAssignedTo(e.target.value)}
-                options={[
-                  { value: getCurrentUserName(), label: getCurrentUserName() },
-                  ...users
-                    .filter(u => u.username.split('@')[0] !== getCurrentUserName())
-                    .map(u => ({ value: u.username.split('@')[0], label: u.username.split('@')[0] }))
-                ]} 
+                options={(() => {
+                  const current = getCurrentUserName();
+                  const knownMembers = ['Prasanna', 'Vedang', 'Tarun', 'Tejas', 'Shreyash', 'Kishan'];
+                  const userNames = users.map(u => u.username.split('@')[0]);
+                  const allUnique = Array.from(new Set([current, ...userNames, ...knownMembers, assignedTo].filter(Boolean)));
+                  return allUnique.map(name => ({ value: name, label: name }));
+                })()} 
               />
             ) : (
               <Input

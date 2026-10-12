@@ -9,6 +9,8 @@ export function useLeads() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [interestFilter, setInterestFilter] = useState<string>('All');
+  const [employeeFilter, setEmployeeFilter] = useState<string>('All');
+  const [sourceFilter, setSourceFilter] = useState<string>('All');
   const [isLoading, setIsLoading] = useState(true);
 
   // Debounce search query to prevent heavy filter passes on every keystroke
@@ -54,17 +56,22 @@ export function useLeads() {
         (lead.resortName && lead.resortName.toLowerCase().includes(query)) ||
         (lead.contactPerson && lead.contactPerson.toLowerCase().includes(query)) ||
         (lead.location && lead.location.toLowerCase().includes(query)) ||
+        (lead.source && lead.source.toLowerCase().includes(query)) ||
+        (lead.assignedTo && lead.assignedTo.toLowerCase().includes(query)) ||
         (lead.phone && lead.phone.includes(query));
       
       const matchesStatus = statusFilter === 'All' || lead.status === statusFilter;
       const matchesInterest = interestFilter === 'All' || lead.interest === interestFilter;
+      const matchesEmployee = employeeFilter === 'All' || lead.assignedTo === employeeFilter;
+      const matchesSource = sourceFilter === 'All' || lead.source === sourceFilter;
 
-      return matchesSearch && matchesStatus && matchesInterest;
+      return matchesSearch && matchesStatus && matchesInterest && matchesEmployee && matchesSource;
     });
-  }, [leads, debouncedSearch, statusFilter, interestFilter]);
+  }, [leads, debouncedSearch, statusFilter, interestFilter, employeeFilter, sourceFilter]);
 
   return {
     leads: filteredLeads,
+    allLeads: leads,
     totalCount: leads.length,
     searchQuery,
     setSearchQuery,
@@ -72,6 +79,10 @@ export function useLeads() {
     setStatusFilter,
     interestFilter,
     setInterestFilter,
+    employeeFilter,
+    setEmployeeFilter,
+    sourceFilter,
+    setSourceFilter,
     isLoading
   };
 }

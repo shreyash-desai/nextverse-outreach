@@ -6,6 +6,7 @@ import { MessageCircle, Phone, CheckCircle, Calendar, AlertCircle } from 'lucide
 import { isToday, isPast, isFuture } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../config/supabase';
+import { formatWhatsAppUrl, isValidPhoneNumber } from '../utils/phone';
 
 export function FollowUps() {
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
@@ -74,26 +75,38 @@ export function FollowUps() {
           </div>
         </div>
         <div className="flex gap-1.5 shrink-0">
-          {f.type === 'WhatsApp' && f.whatsapp && (
-            <button
-              className="w-11 h-11 rounded-xl border border-border bg-surface flex items-center justify-center text-emerald-600 hover:bg-emerald-50 transition-colors"
-              onClick={(e) => { e.stopPropagation(); window.open(`https://wa.me/${f.whatsapp}`, '_blank'); }}
-              title="WhatsApp"
-              aria-label="WhatsApp"
-            >
-              <MessageCircle className="w-4 h-4" />
-            </button>
-          )}
-          {f.type === 'Call' && f.phone && (
-            <button
-              className="w-11 h-11 rounded-xl border border-border bg-surface flex items-center justify-center text-blue-600 hover:bg-blue-50 transition-colors"
-              onClick={(e) => { e.stopPropagation(); window.location.href = `tel:${f.phone}`; }}
-              title="Call"
-              aria-label="Call"
-            >
-              <Phone className="w-4 h-4" />
-            </button>
-          )}
+          {(() => {
+            const waUrl = formatWhatsAppUrl(f.whatsapp);
+            if (f.type === 'WhatsApp' && waUrl) {
+              return (
+                <button
+                  className="w-11 h-11 rounded-xl border border-border bg-surface flex items-center justify-center text-emerald-600 hover:bg-emerald-50 transition-colors"
+                  onClick={(e) => { e.stopPropagation(); window.open(waUrl, '_blank', 'noopener,noreferrer'); }}
+                  title="WhatsApp"
+                  aria-label="WhatsApp"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                </button>
+              );
+            }
+            return null;
+          })()}
+          {(() => {
+            const hasPhone = isValidPhoneNumber(f.phone);
+            if (f.type === 'Call' && hasPhone) {
+              return (
+                <button
+                  className="w-11 h-11 rounded-xl border border-border bg-surface flex items-center justify-center text-blue-600 hover:bg-blue-50 transition-colors"
+                  onClick={(e) => { e.stopPropagation(); window.location.href = `tel:${f.phone}`; }}
+                  title="Call"
+                  aria-label="Call"
+                >
+                  <Phone className="w-4 h-4" />
+                </button>
+              );
+            }
+            return null;
+          })()}
           <button
             className="w-11 h-11 rounded-xl border border-border bg-surface flex items-center justify-center text-textMuted hover:text-emerald-600 hover:border-emerald-200 transition-colors disabled:opacity-50"
             onClick={(e) => { e.stopPropagation(); handleComplete(f.id); }}

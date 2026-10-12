@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { leadService } from '../services/leadService';
 import { activityService } from '../services/activityService';
@@ -9,8 +9,27 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Drawer } from '../components/ui/Drawer';
 import { LeadForm } from '../components/leads/LeadForm';
-import { MessageCircle, Phone, Edit2, ArrowLeft, Building2, MapPin, Mail, Globe, BrainCircuit, Zap } from 'lucide-react';
+import { 
+  MessageCircle, 
+  Phone, 
+  Edit2, 
+  ArrowLeft, 
+  Building2, 
+  MapPin, 
+  Mail, 
+  Globe, 
+  BrainCircuit, 
+  Zap,
+  Star,
+  ExternalLink,
+  Compass,
+  CheckCircle2,
+  AlertCircle,
+  HelpCircle,
+  UserCheck
+} from 'lucide-react';
 import { supabase } from '../config/supabase';
+import { formatWhatsAppUrl, isValidPhoneNumber } from '../utils/phone';
 
 export function LeadDetail() {
   const { id } = useParams<{ id: string }>();
@@ -55,6 +74,15 @@ export function LeadDetail() {
       supabase.removeChannel(channel);
     };
   }, [id, loadData]);
+
+  // Derive verified WhatsApp URL and call readiness
+  const whatsAppUrl = useMemo(() => {
+    return lead ? formatWhatsAppUrl(lead.whatsapp) : null;
+  }, [lead]);
+
+  const hasValidPhone = useMemo(() => {
+    return lead ? isValidPhoneNumber(lead.phone) : false;
+  }, [lead]);
 
   const handleQuickAction = async (action: string) => {
     if (!lead || isQuickLogging) return;
@@ -140,6 +168,14 @@ export function LeadDetail() {
     );
   }
 
+  // Extract research intelligence values defensively
+  const rawIntel = lead.intelligence || {};
+  const googleRating = rawIntel.googleRating ?? rawIntel.google_rating ?? null;
+  const googleReviewCount = rawIntel.googleReviewCount ?? rawIntel.google_review_count ?? null;
+  const googleMapsUrl = rawIntel.googleMapsUrl || rawIntel.google_maps_url || rawIntel.maps_url || null;
+  const phoneSourceType = rawIntel.phoneSourceType || rawIntel.phone_source_type || null;
+  const verificationStatus = rawIntel.verificationStatus || rawIntel.verification_status || null;
+
   return (
     <div className="space-y-5 animate-in fade-in duration-500 pb-28 md:pb-10 max-w-full overflow-hidden">
 
@@ -177,23 +213,39 @@ export function LeadDetail() {
               )}
             </div>
           </div>
-          <div className="flex gap-2 shrink-0">
-            {lead.whatsapp && (
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {whatsAppUrl ? (
               <button
-                onClick={() => window.open(`https://wa.me/${lead.whatsapp}`, '_blank')}
-                className="flex items-center gap-1.5 px-3.5 h-10 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-medium hover:bg-emerald-100 transition-colors"
-                title="WhatsApp"
+                onClick={() => window.open(whatsAppUrl, '_blank', 'noopener,noreferrer')}
+                className="flex items-center gap-1.5 px-3.5 h-10 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-medium hover:bg-emerald-100 transition-colors cursor-pointer"
+                title="Chat on WhatsApp"
               >
                 <MessageCircle className="w-4 h-4" /> WA
               </button>
+            ) : (
+              <button
+                disabled
+                className="flex items-center gap-1.5 px-3 h-10 rounded-xl border border-gray-200 bg-gray-50 text-textMuted text-xs font-normal cursor-not-allowed opacity-75"
+                title="WhatsApp number not available"
+              >
+                <MessageCircle className="w-4 h-4" /> No WA
+              </button>
             )}
-            {lead.phone && (
+            {hasValidPhone ? (
               <button
                 onClick={() => window.location.href = `tel:${lead.phone}`}
                 className="flex items-center gap-1.5 px-3.5 h-10 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-sm font-medium hover:bg-blue-100 transition-colors"
-                title="Call"
+                title={`Call ${lead.phone}`}
               >
                 <Phone className="w-4 h-4" /> Call
+              </button>
+            ) : (
+              <button
+                disabled
+                className="flex items-center gap-1.5 px-3 h-10 rounded-xl border border-gray-200 bg-gray-50 text-textMuted text-xs font-normal cursor-not-allowed opacity-75"
+                title="Published phone number not available"
+              >
+                <Phone className="w-4 h-4" /> No Phone
               </button>
             )}
             <button
@@ -252,6 +304,161 @@ export function LeadDetail() {
       {/* Main content */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div className="md:col-span-2 space-y-5">
+          {/* Property Research & Intelligence Section */}
+          <Card className="p-5 border-border shadow-sm">
+            <div className="flex items-center justify-between pb-3.5 mb-4 border-b border-border/60">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <Compass className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-textPrimary tracking-tight">Property Research & Intelligence</h2>
+                  <p className="text-xs text-textSecondary">Verified property insights and sales intelligence</p>
+                </div>
+              </div>
+              {lead.source && (
+                <span className="text-xs font-medium text-textSecondary bg-light px-2.5 py-1 rounded-full border border-border/60 truncate max-w-[200px]" title={lead.source}>
+                  {lead.source}
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {/* Property Name */}
+              <div className="p-3 bg-light/70 rounded-xl border border-border/40">
+                <span className="text-[11px] font-medium text-textSecondary block mb-1">Property Name</span>
+                <span className="text-sm font-semibold text-textPrimary block truncate" title={lead.resortName}>
+                  {lead.resortName || 'Not available'}
+                </span>
+              </div>
+
+              {/* Location */}
+              <div className="p-3 bg-light/70 rounded-xl border border-border/40">
+                <span className="text-[11px] font-medium text-textSecondary block mb-1">Location</span>
+                <span className="text-sm font-medium text-textPrimary flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-textMuted shrink-0" />
+                  <span className="truncate">{lead.location || 'Not available'}</span>
+                </span>
+              </div>
+
+              {/* Published Phone */}
+              <div className="p-3 bg-light/70 rounded-xl border border-border/40">
+                <span className="text-[11px] font-medium text-textSecondary block mb-1">Published Phone Number</span>
+                {lead.phone ? (
+                  <a 
+                    href={`tel:${lead.phone}`} 
+                    className="text-sm font-medium text-blue-600 hover:underline flex items-center gap-1.5"
+                  >
+                    <Phone className="w-3.5 h-3.5 shrink-0" />
+                    <span>{lead.phone}</span>
+                  </a>
+                ) : (
+                  <span className="text-sm text-textMuted italic flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-orange-400 shrink-0" /> Not available
+                  </span>
+                )}
+              </div>
+
+              {/* Contact Person & Designation */}
+              <div className="p-3 bg-light/70 rounded-xl border border-border/40">
+                <span className="text-[11px] font-medium text-textSecondary block mb-1">Contact Person & Role</span>
+                <span className="text-sm font-medium text-textPrimary block truncate">
+                  {lead.contactPerson ? (
+                    <>
+                      {lead.contactPerson}
+                      {lead.designation && <span className="text-textSecondary font-normal"> ({lead.designation})</span>}
+                    </>
+                  ) : (
+                    <span className="text-textMuted italic">Not available</span>
+                  )}
+                </span>
+              </div>
+
+              {/* Google Rating & Review Count */}
+              <div className="p-3 bg-light/70 rounded-xl border border-border/40">
+                <span className="text-[11px] font-medium text-textSecondary block mb-1">Google Rating & Reviews</span>
+                <div className="flex items-center gap-2">
+                  {googleRating !== null && googleRating !== undefined && !Number.isNaN(Number(googleRating)) ? (
+                    <div className="flex items-center gap-1 font-semibold text-sm text-textPrimary">
+                      <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
+                      <span>{googleRating}</span>
+                      {googleReviewCount !== null && googleReviewCount !== undefined && (
+                        <span className="text-xs font-normal text-textSecondary">
+                          ({Number(googleReviewCount).toLocaleString()} reviews)
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-textMuted italic">Not available</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Google Maps Link */}
+              <div className="p-3 bg-light/70 rounded-xl border border-border/40">
+                <span className="text-[11px] font-medium text-textSecondary block mb-1">Google Maps Research</span>
+                {googleMapsUrl ? (
+                  <a
+                    href={googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-primary hover:underline flex items-center gap-1.5"
+                  >
+                    <span>Open Maps link</span>
+                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                  </a>
+                ) : (
+                  <span className="text-sm text-textMuted italic">Not available</span>
+                )}
+              </div>
+
+              {/* Phone Source Type */}
+              <div className="p-3 bg-light/70 rounded-xl border border-border/40">
+                <span className="text-[11px] font-medium text-textSecondary block mb-1">Phone Source Type</span>
+                <span className="text-sm font-medium text-textPrimary block">
+                  {phoneSourceType || (lead.phone ? 'Published Listing' : 'Not available')}
+                </span>
+              </div>
+
+              {/* Phone Verification Status */}
+              <div className="p-3 bg-light/70 rounded-xl border border-border/40">
+                <span className="text-[11px] font-medium text-textSecondary block mb-1">Verification Status</span>
+                <div className="flex items-center gap-1.5">
+                  {verificationStatus ? (
+                    verificationStatus.toLowerCase().includes('verified') ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" /> {verificationStatus}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                        <AlertCircle className="w-3 h-3 text-amber-600" /> {verificationStatus}
+                      </span>
+                    )
+                  ) : lead.phone ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                      <HelpCircle className="w-3 h-3 text-blue-600" /> Unverified
+                    </span>
+                  ) : (
+                    <span className="text-sm text-textMuted italic">Not available</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Assigned Employee & Status */}
+              <div className="p-3 bg-light/70 rounded-xl border border-border/40">
+                <span className="text-[11px] font-medium text-textSecondary block mb-1">Assigned Employee & Status</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-textPrimary flex items-center gap-1">
+                    <UserCheck className="w-3.5 h-3.5 text-textMuted shrink-0" />
+                    <span>{lead.assignedTo || 'Unassigned'}</span>
+                  </span>
+                  <span className="text-textMuted">·</span>
+                  <Badge type={lead.status}>{lead.status}</Badge>
+                </div>
+              </div>
+            </div>
+          </Card>
+
           <Card className="p-5">
             <h2 className="text-base font-semibold text-textPrimary mb-3">Conversation Notes</h2>
             <div className="bg-light rounded-xl p-4 border border-border/50 text-sm text-textPrimary leading-relaxed whitespace-pre-wrap break-words">
