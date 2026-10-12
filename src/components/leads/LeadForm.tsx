@@ -442,14 +442,14 @@ export function LeadForm({ initialData, onSuccess, onCancel }: LeadFormProps) {
         </div>
       </div>
 
-      {/* Sticky Bottom Actions Bar: Never overlaps form contents on mobile or desktop */}
-      <div className="sticky bottom-0 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 px-4 sm:px-6 py-3.5 bg-surface/95 backdrop-blur-md border-t border-border flex items-center justify-end gap-3 z-20 shadow-lg mt-auto pb-safe">
+      {/* Sticky Bottom Actions Bar: Always visible above mobile safe area and keyboard */}
+      <div className="sticky bottom-0 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 px-4 sm:px-6 py-4 bg-surface/98 backdrop-blur-md border-t border-border flex items-center justify-end gap-3 z-30 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] mt-auto pb-[max(1rem,env(safe-area-inset-bottom))]">
         <Button
           variant="secondary"
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="min-h-[44px] px-5 rounded-xl"
+          className="min-h-[44px] px-5 rounded-xl text-sm"
         >
           Cancel
         </Button>
@@ -458,7 +458,7 @@ export function LeadForm({ initialData, onSuccess, onCancel }: LeadFormProps) {
           type="submit"
           disabled={isSubmitting}
           isLoading={isSubmitting}
-          className="min-h-[44px] px-6 rounded-xl font-medium shadow-sm"
+          className="min-h-[44px] px-6 rounded-xl font-medium shadow-sm text-sm"
         >
           {isSubmitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Lead'}
         </Button>

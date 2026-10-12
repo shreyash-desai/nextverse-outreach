@@ -23,15 +23,15 @@ export function Drawer({ isOpen, onClose, title, children }: DrawerProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-stretch md:justify-end">
+    <div className="fixed inset-0 z-[70] flex items-end md:items-stretch md:justify-end">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-dark/40 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-dark/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
       
       {/* Panel — bottom sheet on mobile, full-height slide-over on desktop */}
-      <div className="relative w-full md:w-[600px] max-w-full max-h-[94dvh] md:max-h-full h-auto md:h-full bg-surface shadow-floating flex flex-col rounded-t-3xl md:rounded-none z-10 overflow-hidden pb-safe">
+      <div className="relative w-full md:w-[600px] max-w-full h-[90dvh] md:h-full bg-surface shadow-floating flex flex-col rounded-t-3xl md:rounded-none z-10 overflow-hidden">
         {/* Drag handle for mobile */}
         <div className="flex justify-center pt-3 pb-1 md:hidden shrink-0">
           <div className="w-10 h-1.5 rounded-full bg-border" />
